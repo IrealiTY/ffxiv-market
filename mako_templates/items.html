@@ -1,0 +1,39 @@
+<%include file="header.html"/>
+
+<%namespace file="formatting.mako" import="render_item_list"/>
+
+<div style="float: left; padding-right: 15px;">
+    <div>
+        <span style="font-size: 1.5em;">Watched items (${watch_count}/${watch_limit})</span><br/>
+        ${render_item_list(watch_list, 'wat')}
+    </div>
+    <div>
+        <span style="font-size: 1.5em;">Crystals</span><br/>
+        ${render_item_list(crystals_list, 'cry')}
+    </div>
+    <div>
+        <span style="font-size: 1.5em;">Most-watched items</span><br/>
+        ${render_item_list(most_watched_list, 'mwt')}
+    </div>
+</div>
+<div style="float: left;">
+    <div style="float: left; padding-right: 15px;">
+        <span style="font-size: 1.5em;">Items with no stock</span><br/>
+        ${render_item_list(unavailable_list, 'act')}
+    </div>
+    <div style="float: left;">
+        <span style="font-size: 1.5em;">Stale data (1-7 days)</span><br/>
+        ${render_item_list(stale_list, 'sta')}
+    </div>
+    <div style="clear: both;"></div>
+    <div style="float: left; padding-right: 15px;">
+        <span style="font-size: 1.5em;">Most valuable (250-7500)</span><br/>
+        ${render_item_list(valuable_list, 'val')}
+    </div>
+    <div style="float: left;">
+        <span style="font-size: 1.5em;">Recently updated</span><br/>
+        ${render_item_list(updated_list, 'rec')}
+    </div>
+</div>
+
+<%include file="footer.html"/>

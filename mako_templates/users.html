@@ -1,0 +1,51 @@
+<%include file="header.html"/>
+
+<div class="about-topic">
+    <span class="about-header">Rules</span><br/>
+    Only approve registrations if the player's in-game name matches the name
+    used when they registered, and check the player's levels (Player Search) to
+    make sure it isn't an alt. This is necessary to avoid abuse by fake
+    accounts.
+</div>
+<div>
+    <span style="font-size: 1.5em;">Pending approval:</span>
+    <ul class="ffxiv-list">
+        %for (user_id, user_name) in users_pending:
+            <li><a href="/users/${user_id}">${user_name}</a></li>
+        %endfor
+    </ul>
+</div>
+<div>
+    <span style="font-size: 1.5em;">Active:</span>
+    <ul class="ffxiv-list">
+        %for (user_id, user_name) in users_active:
+            <li><a href="/users/${user_id}">${user_name}</a></li>
+        %endfor
+    </ul>
+</div>
+<div>
+    <span style="font-size: 1.5em;">Moderators:</span>
+    <ul class="ffxiv-list">
+        %for (user_id, user_name) in users_moderator:
+            <li><a href="/users/${user_id}">${user_name}</a></li>
+        %endfor
+    </ul>
+</div>
+<div>
+    <span style="font-size: 1.5em;">Administrators:</span>
+    <ul class="ffxiv-list">
+        %for (user_id, user_name) in users_administrator:
+            <li><a href="/users/${user_id}">${user_name}</a></li>
+        %endfor
+    </ul>
+</div>
+<div>
+    <span style="font-size: 1.5em;">Banned:</span>
+    <ul class="ffxiv-list">
+        %for (user_id, user_name) in users_banned:
+            <li><a href="/users/${user_id}">${user_name}</a></li>
+        %endfor
+    </ul>
+</div>
+
+<%include file="footer.html"/>

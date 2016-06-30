@@ -1,0 +1,124 @@
+<div class="about-topic">
+    <span class="about-header">What is this site?</span><br/>
+    ${site['site_name']} is a crowd-sourced database of market board information for
+    ${site['game_server']}, freely shared under the belief that knowing market trends
+    will help both crafters and gatherers profit, without leading to a
+    <a href="https://en.wikipedia.org/wiki/Prisoner%27s_dilemma">Prisoner's Dilemma</a>
+    environment.
+</div>
+<div class="about-topic">
+    <span class="about-header">If it's freely shared, why the authentication?</span><br/>
+    The first reason is to prevent data-mining by those who would try to use
+    in-game crowd-sourced data for real-world profit. The second is to prevent
+    vandalism. Hand-in-hand with the second is the appeal of knowing you're part
+    of an elite club.
+</div>
+<div class="about-topic">
+    <span class="about-header">So how does this system work?</span><br/>
+    Simple: pick an item, type a price, and hit update!
+    <br/><br/>
+    If the item you want to track doesn't exist, just type its name anyway (be
+    sure to spell it right, though capitalisation doesn't matter) and when you
+    submit a price, it'll be created; there's a field at the top of the page
+    specifically for this.
+    <br/><br/>
+    To add an HQ item variant, just put 'HQ' at the end of its name.
+    <br/><br/>
+    If you made a mistake when entering a price, just click
+    <img src="/static/delete.png"/> on the item page to delete it; if it's the
+    only price, the item will be removed, too. You can only delete prices
+    entered recently, to preserve historical integrity.
+    <br/><br/>
+    for convenience, anywhere you see a timestamp attached to an item (the grey
+    '8 hours ago' text), you can click on it to expose an update prompt.
+</div>
+<div class="about-topic">
+    <span class="about-header">What are the key things to keep in mind?</span><br/>
+    <ul class="about-list">
+        <li>
+            Prices should reflect the effective market-floor of an item,
+            ignoring obvious outliers<br/>
+            <ul>
+                <li>
+                    Outliers are things like items listed at 5g when the market
+                    regularly moves at 500g or enormous stacks when people
+                    normally only buy singles
+                </li>
+                <li>
+                    As a general rule of thumb, use the price you would have to
+                    pay if you were to buy the item in question in reasonable
+                    quantities
+                </li>
+            </ul>
+        </li>
+        <li>
+            Use this system to track any items you're interested in, but
+            farmable commodities are most preferred, and tracking those will
+            help everyone weather (or profit from) spikes
+        </li>
+        <li>
+            While it would be interesting to know the prices of high-value
+            items, like housing pieces, you are under no obligation to publish
+            anything that you would prefer to keep to yourself, though others
+            may contribute it independently
+        </li>
+        <li>
+            Please be respectful of market pricing: don't be the person who
+            undercuts a lucrative operation by 50%, especially if you learned of
+            it through this site
+        </li>
+    </ul>
+</div>
+<div class="about-topic">
+    <span class="about-header">How does authorisation work?</span><br/>
+    When you request access, you must provide your character's name on
+    ${site['game_server']}. This will create a profile for you with its status set to
+    "unconfirmed", and you will get a unique login code, which you should
+    record for later use. 
+    <br/><br/>
+    At this point, you must message a <a href="/users/moderators">moderator</a>
+    in-game to be given access; this is to ensure that you are the person who
+    requested access, since the names must match.
+    <br/><br/>
+    At any point, your profile may be banned if you are found to be acting
+    against the spirit of this database.
+</div>
+<div class="about-topic">
+    <span class="about-header">Something broke or someone's abusing the site</span><br/>
+    The site's administrator is ${site['admin_name']}; send a tell in-game or send
+    e-mail to ${site['admin_email']}.
+    <br/><br/>
+    <a href="/users/moderators">Moderators</a> have been appointed and can help with
+    cases of price vandalism or fake items, but only the administrator has the
+    ability to handle abuse.
+</div>
+<div class="about-topic">
+    <span class="about-header">How can I report invalid data?</span><br/>
+    If you submitted an incorrect price, just click
+    <img src="/static/delete.png"/> to delete it.
+    <br/><br/>
+    You can only delete your own submissions, though, so
+    <img src="/static/delete.png"/> will be replaced with
+    <img src="/static/flag.png"/>, which allows you to flag suspicious data for
+    moderator review. <img src="/static/flagged.png"/> indicates that the price
+    has already been flagged for review.
+</div>
+<div class="about-topic">
+    <span class="about-header">What privacy is provided?</span><br/>
+    Your character name is stored as your identification within the server, and
+    it is tied to all price-data you submit.
+    <br/><br/>
+    The password you provide is hashed with a unique-per-user salt, which should
+    make it extremely hard to crack, and it is connected only to your in-game
+    name, not an e-mail address or account ID. However, no guarantees are made
+    about the security of this information.
+    <br/><br/>
+    Cookies are used solely to retain your logged-in status for convenience.
+    Your IP may be recorded as part of routine logging, but it is not tied to
+    any other identifying data, beyond fuzzy correlation of access-time with
+    price-data.
+    <br/><br/>
+    This is not a guarantee or commitment to privacy, but the spirit with which
+    the system was written is one of analysing market trends purely for the sake
+    of fascination, not to exploit its users.
+</div>

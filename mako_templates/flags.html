@@ -1,0 +1,30 @@
+<%include file="header.html"/>
+
+<%namespace file="formatting.mako" import="render_timestamp"/>
+
+<div>
+    <span style="font-size: 1.5em;">Flagged prices</span><br/>
+    %if flags:
+        <ul class="ffxiv-list">
+            %for (i, flag) in enumerate(flags):
+                <li id="flg-${i}">
+                    <a href="/items/${flag.item.id}">${flag.item.name | h}</a>
+                    @ ${flag.item.price.value}
+                    ${render_timestamp(flag.item.price.timestamp)}<br/>
+                    Submitted by <a href="/users/${flag.item.price.reporter.id}">${flag.item.price.reporter.anonymous and '<i>' or ''}${flag.item.price.reporter.name}${flag.item.price.reporter.anonymous and '</i>' or ''}</a><br/>
+                    Flagged by <a href="/users/${flag.user.id}">${flag.user.anonymous and '<i>' or ''}${flag.user.name}${flag.user.anonymous and '</i>' or ''}</a><br/>
+                    <form style="display: inline;">
+                        <input type="submit" value="delete flagged price" onclick="return ffxivm_flag_resolve(${flag.item.id}, ${flag.item.price.timestamp}, true, 'flg-${i}');"/>
+                    </form>
+                    <form style="display: inline;">
+                        <input type="submit" value="dismiss report" onclick="return ffxivm_flag_resolve(${flag.item.id}, ${flag.item.price.timestamp}, false, 'flg-${i}');"/>
+                    </form>
+                </li>
+            %endfor
+        </ul>
+    %else:
+        <span class="nodata">Nothing</span>
+    %endif
+</div>
+
+<%include file="footer.html"/>

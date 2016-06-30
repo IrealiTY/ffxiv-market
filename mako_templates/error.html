@@ -1,0 +1,10 @@
+<%include file="header.html"/>
+
+<span style="font-size: 2em;">${error_code} - ${reason or '???'}</span>
+%if 500 <= error_code < 600:
+    <br/>
+    This problem could be caused by ongoing site development; if it persists for
+    more than half an hour, contact ${site['admin_name']}.
+%endif
+
+<%include file="footer.html"/>

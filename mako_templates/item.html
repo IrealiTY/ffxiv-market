@@ -1,0 +1,241 @@
+<%include file="header.html"/>
+
+<%namespace file="formatting.mako" import="render_timestamp, render_item_list"/>
+
+<%def name="render_price_point(item_id, price, callback_target, reload_on_delete=False)">
+    <%
+        can_delete = role['moderator'] or (price.timestamp > delete_lockout_time and price.reporter.id == identity['user_id'])
+    %>
+    %if can_delete:
+        %if reload_on_delete:
+            <form action="/items/price-delete" method="post" style="display: inline;">
+                <input type="hidden" name="item_id" value="${item_id}"/>
+                <input type="hidden" name="timestamp" value="${price.timestamp}"/>
+                <input type="submit" title="delete price" value="" style="background: url(/static/delete.png) no-repeat; cursor: pointer; height: 12px; width: 10px; border: none;"/>
+            </form>
+        %else:
+            <a href="#" title="delete price" id="${callback_target}-a" onclick="return ffxivm_price_delete(${item_id}, ${price.timestamp}, '${callback_target}');" style="text-decoration: none;">
+                <img src="/static/delete.png" id="${callback_target}-img"/>
+            </a>
+        %endif
+    %elif not price.flagged:
+        <a href="#" title="flag for review" id="${callback_target}-a" onclick="return ffxivm_price_delete(${item_id}, ${price.timestamp}, '${callback_target}');" style="text-decoration: none;">
+            <img src="/static/flag.png" id="${callback_target}-img"/>
+        </a>
+    %else:
+        <img src="/static/flagged.png" title="flagged for review"/>
+    %endif
+    <b>${price.value and '{p:,}'.format(p=price.value) or 'none'}</b>
+    ${render_timestamp(price.timestamp)}
+    <span style="font-size: 0.8em;">submitted by
+        %if role['moderator']:
+            <a href="/users/${price.reporter.id}">${price.reporter.anonymous and '<i>' or ''}${price.reporter.name}${price.reporter.anonymous and '</i>' or ''}</a>
+        %else:
+            ${price.reporter.anonymous and 'anonymous' or price.reporter.name}
+        %endif
+    </span>
+</%def>
+
+<%def name="render_price_list(item_id, prices, callback_id_prefix)">
+    <%
+        callback_id = 0
+    %>
+    %if prices:
+        <ul class="ffxiv-list">
+            %for price in prices:
+                <%
+                    if callback_id == 999:
+                        break
+                    callback_id += 1
+                    callback_target = "{prefix}-{id}".format(
+                        prefix=callback_id_prefix,
+                        id=callback_id,
+                    )
+                %>
+                <li id="${callback_target}">${render_price_point(item_id, price, callback_target)}</li>
+            %endfor
+        </ul>
+    %else:
+        <span class="nodata">Nothing</span>
+    %endif
+</%def>
+
+<%
+    prices = (i for i in price_data)
+%>
+
+<div style="clear: both;"></div>
+<div style="float: left; padding-right: 15px;">
+    <span style="font-size: 1.75em;"><a href="${item_db_url | h}">${item_name}</a></span>
+    <form action="/items/price-update" method="post" style="display: inline;">
+        <input type="hidden" name="item_id" value="${item_id}"/>
+        @
+        <input type="number" name="value" min="0" max="999999999" size="9" autocomplete="off" autofocus required/>
+        gil
+        <input type="submit" value="update"/>
+        <br/>
+        <span style="font-style: italic;">
+            Enter the price you would have to pay to buy a reasonable quantity;
+            if no items are available for sale, enter 0.
+        </span>
+    </form>
+    <div style="font-size: 1.25em;">
+        ${render_price_point(item_id, prices.next(), 'rct', reload_on_delete=True)}<br/>
+    </div>
+    <div>
+        %if watching:
+            <form>
+                <input type="submit" id="watch" value="stop watching this item" onclick="return ffxivm_unwatch(${item_id});"/>
+            </form>
+        %elif watch_count < watch_limit:
+            <form>
+                <input type="submit" id="watch" value="watch this item" onclick="return ffxivm_watch(${item_id});"/>
+            </form>
+        %else:
+            <span class="nodata">watching ${watch_count}/${watch_limit} items</span><br/>
+        %endif
+    </div>
+    <br/><br/>
+</div>
+%if role['moderator'] or quality_counterpart or crafted_from or crafts_into:
+    <div style="float: right; font-size: 0.8em;">
+        %if quality_counterpart:
+            <div>
+                <span style="font-size: 1.5em;">Quality counterpart</span><br/>
+                ${render_item_list((quality_counterpart,), 'hq')}
+            </div>
+        %endif
+        %if crafted_from:
+            <div>
+                <span style="font-size: 1.5em;">Crafted from</span><br/>
+                ${render_item_list(sorted(crafted_from, key=(lambda i: i.item_state.name)), 'crf')}
+            </div>
+        %endif
+        %if crafts_into:
+            <div>
+                <span style="font-size: 1.5em;">Crafts into</span><br/>
+                ${render_item_list(sorted(crafts_into, key=(lambda i: i.item_state.name)), 'cri')}
+            </div>
+        %endif
+        %if role['moderator']:
+            <div>
+                <form action="/items/related-items-update" method="post">
+                    <input type="hidden" name="item_id" value="${item_id}"/>
+                    <input type="submit" value="re-index related items"/>
+                </form>
+            </div>
+        %endif
+    </div>
+%endif
+<div style="clear: both;"></div>
+
+<div>
+    %if normalised_data:
+        <div id="chart" style="width: 100%; height: 300px;"></div>
+        <script type="text/javascript">
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                <%
+                    half_timescale = int(normalised_data_timescale / 2)
+                    final_comma = len(normalised_data) - 1
+                %>
+                var data = new google.visualization.DataTable();
+                data.addColumn('datetime', 'Time (${normalised_data_timescale / 3600.0}-hour windows)');
+                data.addColumn('number', 'Price in gil');
+                data.addRows([
+                    %for (i, datum) in enumerate(normalised_data):
+                        [new Date(${(page['time_current'] - ((len(normalised_data) - i - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${i < final_comma and ',' or ''}
+                    %endfor
+                ]);
+                var options = {
+                    aggregationTarget: 'none',
+                    explorer: {
+                        axis: 'horizontal',
+                        keepInBounds: true,
+                        maxZoomIn: .25,
+                        maxZoomOut: 1
+                    },
+                    hAxis: {
+                        viewWindow: {
+                            min: new Date(${(page['time_current'] - 3600 * 24 * 28) * 1000}),
+                            max: new Date(${(page['time_current'] * 1000)})
+                        },
+                        gridlines: {
+                            count: -1,
+                            units: {
+                                days: {format: ['MMM dd']},
+                            }
+                        },
+                    },
+                    legend: {
+                        position: 'none'
+                    },
+                    chartArea: {
+                        top: '8%',
+                        left: '10%',
+                        width: '80%',
+                        height: '84%',
+                        backgroundColor: {
+                            stroke: 'black',
+                            strokeWidth: '1px'
+                        }
+                    }
+                };
+                var chart = new google.visualization.LineChart(document.getElementById('chart'));
+                chart.draw(data, options);
+            }
+        </script>
+        <div style="clear: both;"></div>
+        <div style="font-size: 0.75em; float: left; padding-right: 15px;">
+            Average for the month: ${'{p:,}'.format(p=average_month)}<br/>
+            %if average_week is not None:
+                Average for the week: ${'{p:,}'.format(p=average_week)}<br/>
+            %endif
+            %if average_24h is not None:
+                Average for the past 24h: ${'{p:,}'.format(p=average_24h)}<br/>
+            %endif
+        </div>
+        <div style="font-size: 0.75em; float: left; padding-right: 15px;">
+            Low of the past month: ${'{p:,}'.format(p=low_month.value)}, at <span ffxivm_ts_t="${low_month.timestamp}"/><br/>
+            %if low_week is not None:
+                Low of the past week: ${'{p:,}'.format(p=low_week.value)}, at <span ffxivm_ts_t="${low_week.timestamp}"/><br/>
+            %endif
+            %if low_24h is not None:
+                Low of the past 24h: ${'{p:,}'.format(p=low_24h.value)}, at <span ffxivm_ts_t="${low_24h.timestamp}"/><br/>
+            %endif
+        </div>
+        <div style="font-size: 0.75em; float: left; padding-right: 15px;">
+            High of the past month: ${'{p:,}'.format(p=high_month.value)}, at <span ffxivm_ts_t="${high_month.timestamp}"/><br/>
+            %if high_week is not None:
+                High of the past week: ${'{p:,}'.format(p=high_week.value)}, at <span ffxivm_ts_t="${high_week.timestamp}"/><br/>
+            %endif
+            %if high_24h is not None:
+                High of the past 24h: ${'{p:,}'.format(p=high_24h.value)}, at <span ffxivm_ts_t="${high_24h.timestamp}"/><br/>
+            %endif
+        </div>
+        %if trend_weekly or trend_daily or trend_current:
+            <div style="font-size: 0.75em; float: left; padding-right: 15px;">
+                %if trend_weekly is not None:
+                    Weekly market trend: ${'{t:+.2%}'.format(t=trend_weekly)}<br/>
+                %endif
+                %if trend_daily is not None:
+                    Daily market trend: ${'{t:+.2%}'.format(t=trend_daily)}<br/>
+                %endif
+                %if trend_current is not None:
+                    Current market trend: ${'{t:+.2%}'.format(t=trend_current)}<br/>
+                %endif
+            </div>
+        %endif
+    %else:
+        <span class="nodata">Insufficient data to render chart</span>
+    %endif
+</div>
+<div style="clear: both;"></div>
+<div>
+    <span style="font-size: 1.5em;">History</span><br/>
+    ${render_price_list(item_id, prices, 'hst')}
+</div>
+
+<%include file="footer.html"/>

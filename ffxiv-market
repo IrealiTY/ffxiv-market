@@ -1,0 +1,91 @@
+#!/usr/bin/python
+import json
+import logging
+import logging.handlers
+import os
+import sys
+
+import tornado
+import tornado.web
+
+CONFIG = json.loads(open(sys.argv[1]).read())
+
+_logger = logging.getLogger('')
+if __name__ == '__main__':
+    #Set up logging
+    _logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s[%(lineno)d]:%(message)s")
+    
+    if CONFIG['logging']['console']:
+        logging_handler = logging.StreamHandler()
+        logging_handler.setFormatter(formatter)
+        logging_handler.setLevel(getattr(logging, CONFIG['logging']['console'].upper()))
+        _logger.addHandler(logging_handler)
+        
+    if CONFIG['logging']['path']:
+        
+        _logger.setLevel(getattr(logging, CONFIG['logging']['level'].upper()))
+        logging_handler = logging.handlers.RotatingFileHandler(
+            filename=CONFIG['logging']['path'],
+            maxBytes=(64 * 1024), backupCount=7,
+        )
+        logging_handler.setFormatter(formatter)
+        logging_handler.setLevel(getattr(logging, CONFIG['logging']['level'].upper()))
+        _logger.addHandler(logging_handler)
+        
+import ffxiv_market.common
+ffxiv_market.common.CONFIG = CONFIG
+
+import ffxiv_market.handlers.flags
+import ffxiv_market.handlers.items
+import ffxiv_market.handlers.login
+import ffxiv_market.handlers.users
+
+APPLICATION = tornado.web.Application(
+    [
+        (r"/static/(.*)", tornado.web.StaticFileHandler, {
+            'path': CONFIG['server']['static_path'],
+        }),
+        (r"/(favicon\.ico)", tornado.web.StaticFileHandler, {
+            'path': CONFIG['server']['static_path'],
+        }),
+        
+        (r"/", tornado.web.RedirectHandler, {
+            'url': "/items",
+            'permanent': False,
+        }),
+        
+        (r"/login", ffxiv_market.handlers.login.LoginHandler),
+        (r"/logout", ffxiv_market.handlers.login.LogoutHandler),
+        (r"/login/register", ffxiv_market.handlers.login.RegisterHandler),
+        (r"/login/recover", ffxiv_market.handlers.login.RecoverHandler),
+        (r"/about", ffxiv_market.handlers.login.AboutHandler),
+        
+        (r"/users", ffxiv_market.handlers.users.ListHandler),
+        (r"/users/moderators", ffxiv_market.handlers.users.ModeratorsHandler),
+        (r"/users/(\d+)", ffxiv_market.handlers.users.ProfileHandler),
+        (r"/users/anonymity-update", ffxiv_market.handlers.users.AnonymityUpdateHandler),
+        (r"/users/set-status", ffxiv_market.handlers.users.SetStatusHandler),
+        (r"/users/accept-recovery-password", ffxiv_market.handlers.users.AcceptRecoveryPasswordHandler),
+        
+        (r"/items", ffxiv_market.handlers.items.ItemsHandler),
+        (r"/items/(\d+)", ffxiv_market.handlers.items.ItemHandler),
+        (r"/items/price-update", ffxiv_market.handlers.items.PriceUpdateHandler),
+        (r"/items/price-delete", ffxiv_market.handlers.items.PriceDeleteHandler),
+        (r"/items/related-items-update", ffxiv_market.handlers.items.RelatedItemsUpdateHandler),
+        (r"/items/ajax-price-update", ffxiv_market.handlers.items.AjaxPriceUpdateHandler),
+        (r"/items/ajax-price-delete", ffxiv_market.handlers.items.AjaxPriceDeleteHandler),
+        (r"/items/ajax-watch", ffxiv_market.handlers.items.AjaxWatchHandler),
+        (r"/items/ajax-unwatch", ffxiv_market.handlers.items.AjaxUnwatchHandler),
+        
+        (r"/flags", ffxiv_market.handlers.flags.FlagsHandler),
+        (r"/flags/ajax-resolve", ffxiv_market.handlers.flags.AjaxResolveHandler),
+    ],
+    cookie_secret=CONFIG['server']['hmac'],
+    login_url=r'/login',
+    debug=True,
+)
+
+if __name__ == "__main__":
+    APPLICATION.listen(CONFIG['server']['port'], address=CONFIG['server']['address'])
+    tornado.ioloop.IOLoop.instance().start()

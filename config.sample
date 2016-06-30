@@ -1,0 +1,43 @@
+{
+    "cookie": {
+        "longevity_days": 28,
+        "auth_identifier": "auth"
+    },
+    "logging": {
+        "console": null,
+        "level": "warn",
+        "path": "/var/log/ffxiv-market.log"
+    },
+    "server": {
+        "port": 1506,
+        "address": "127.0.0.1",
+        "static_path": "/srv/ffxiv-market/static",
+        "mako_templates_path": "/srv/ffxiv-market/mako_templates",
+        "mako_modules_path": "/tmp/ffxiv-market/mako_modules",
+        "hmac": "Some secret sequence of words",
+        "admin_name": "Your Character",
+        "admin_email": "some@address.thing",
+        "game_server": "Ultros",
+        "site_name": "Ultros Market Database"
+    },
+    "database": {
+        "postgres": {
+            "host": "127.0.0.1",
+            "database": "ffxiv_market",
+            "username": "username",
+            "password": "password",
+            "connections_min": 1,
+            "connections_max": 4
+        }
+    },
+    "graphing": {
+        "timescale_seconds": 14400,
+        "data_points": 168
+    },
+    "prices": {
+        "delete_lockout_seconds": 86400
+    },
+    "profiles": {
+        "item_watch_limit": 50
+    }
+}

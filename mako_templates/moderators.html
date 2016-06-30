@@ -1,0 +1,36 @@
+<%include file="header.html"/>
+
+<div class="about-topic">
+    <span class="about-header">What are moderators?</span><br/>
+    Moderators are volunteers responsible for ensuring the integrity of price
+    data and controlling user access to ${site['site_name']}.
+    <br/><br/>
+    Moderators will only approve your registration if your in-game name matches
+    that with which you registered.
+</div>
+<div class="about-topic">
+    <span class="about-header">Can I be a moderator?</span><br/>
+    As a volunteer role, it carries the burden of responsibility with no real
+    reward. The nature of managing a competitive database further requires that
+    moderators be highly disciplined and professional: anyone selected for this
+    position must be someone who can resist the urge to ban another player for
+    undercutting them or orchestrating a price-war.
+    <br/><br/>
+    Please do not inquire about this. If you are suitable, you will be referred.
+</div>
+<div>
+    <span style="font-size: 1.5em;">Moderators:</span>
+    <ul class="ffxiv-list">
+        %if role['moderator']:
+            %for (user_id, user_name) in moderators:
+                <li><a href="/users/${user_id}">${user_name}</a></li>
+            %endfor
+        %else:
+            %for (user_id, user_name) in moderators:
+                <li>${user_name}</li>
+            %endfor
+        %endif
+    </ul>
+</div>
+
+<%include file="footer.html"/>

@@ -1,0 +1,8 @@
+[Service]
+Type=simple
+ExecStart=/srv/webservice/ffxiv-market/ffxiv-market /srv/webservice/ffxiv-market/config
+Restart=always
+RestartSec=250ms
+
+[Install]
+WantedBy=default.target

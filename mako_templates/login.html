@@ -1,0 +1,62 @@
+<%include file="header.html"/>
+
+<div>
+    Already registered? Log in here!
+    <br/>
+    <form action="/login" method="post">
+        <input type="hidden" name="next" value="${next | h}"/>
+        <label for="login_username">character-name</label>
+        <input type="text" name="username" id="login_username" required/>
+        <br/>
+        <label for="login_password">password</label>
+        <input type="password" name="password" id="login_password" required/>
+        <br/>
+        <input type="submit" value="login"/>
+    </form>
+    <br/>
+    Not yet registered? Read through the rules and description below,
+    and register at the bottom of this page.
+    <br/>
+    Did you forget your password?
+    <a href="#" onclick="$('#pw-rec').show('blind');">Set a new one</a> to
+    regain access.
+    <div id="pw-rec" style="display: none;">
+        <form action="/login/recover" method="post">
+            <input type="hidden" name="next" value="${next | h}"/>
+            <label for="recover_username">character-name</label>
+            <input type="text" name="username" id="recover_username" required/>
+            <br/>
+            <label for="recover_password">password</label>
+            <input type="password" name="password" id="recover_password" required/>
+            <br/>
+            <input type="submit" value="recover"/>
+        </form>
+        <br/>
+        If you don't have a throwaway password in mind, how about
+        <i>${throwaway_password}</i>? Remember to e-mail it to yourself so
+        it doesn't get lost (again).
+    </div>
+</div>
+<hr/>
+
+<%include file="about_body.html"/>
+
+<hr/>
+<div id="register">
+    <form action="/login/register" method="post">
+        <input type="hidden" name="next" value="${next | h}"/>
+        <label for="register_username">character-name</label>
+        <input type="text" name="username" id="register_username" required/>
+        <br/>
+        <label for="register_password">password</label>
+        <input type="password" name="password" id="register_password" required/>
+        <br/>
+        <input type="submit" value="register"/>
+    </form>
+    <br/>
+    If you don't have a throwaway password in mind, how about
+    <i>${throwaway_password}</i>? Remember to e-mail it to yourself so
+    it doesn't get lost.
+</div>
+
+<%include file="footer.html"/>

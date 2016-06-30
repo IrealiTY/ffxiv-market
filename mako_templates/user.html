@@ -1,0 +1,93 @@
+<%include file="header.html"/>
+
+<%!
+    import time
+%>
+
+<%namespace file="formatting.mako" import="format_timestamp_friendly"/>
+
+<h1>${user_name}</h1>
+<div>
+    Status: ${user_status}<br/>
+    Anonymous: ${user_anonymous and 'yes' or 'no'}
+    %if identity['user_id'] == user_id:
+        <form style="display: inline;" action="/users/anonymity-update" method="post">
+            <input type="hidden" value="${user_anonymous and 'show' or 'hide'}" name="anonymity"/>
+            <input type="submit" value="${user_anonymous and 'show my name' or 'hide my name'}"/>
+        </form>
+    %endif
+    <br/>
+    Last seen: ${user_last_seen and format_timestamp_friendly(user_last_seen) or 'never'}<br/>
+    Prices submitted: ${user_prices_submitted}<br/>
+    %if role['moderator']:
+        Invalid prices submitted: ${user_invalid_prices_submitted} (${int(100 * float(user_invalid_prices_submitted) / max(1, user_prices_submitted + user_invalid_prices_submitted))}%)<br/>
+        Unresolved flags: ${user_unresolved_flags}<br/>
+        Valid flags: ${user_valid_flags_reported}<br/>
+        Invalid flags: ${user_invalid_flags_reported} (${int(100 * float(user_invalid_flags_reported) / max(1, user_valid_flags_reported + user_invalid_flags_reported))}%)<br/>
+    %endif
+</div>
+
+%if role['moderator']:
+    <div>
+        <span style="font-size: 1.5em;">Actions received:</span>
+        <ul class="ffxiv-list">
+            %for (actor_name, actor_id, timestamp, action, comment) in user_actions_received:
+                <li ffxivm_ts="${timestamp}"><a href="/users/${actor_id}">${actor_name}</a> ${action}: ${comment}</li>
+            %endfor
+        </ul>
+        <span style="font-size: 1.5em;">Actions performed:</span>
+        <ul class="ffxiv-list">
+            %for (subject_name, subject_id, timestamp, action, comment) in user_actions_performed:
+                <li ffxivm_ts="${timestamp}">${action} <a href="/users/${subject_id}">${subject_name}</a>: ${comment}</li>
+            %endfor
+        </ul>
+    </div>
+    
+    %if user_set_active:
+        <div>
+            <form style="display: inline;" action="/users/set-status" method="post">
+                <input type="hidden" value="${user_id}" name="user_id"/>
+                <input type="hidden" value="activated" name="action"/>
+                <label for="activation_reason">Reason for activation:</label>
+                <input type="text" size="50" name="reason" id="activation_reason" value="Received in-game message." required/>
+                <input type="submit" value="activate this user"/>
+            </form>
+        </div>
+    %endif
+    %if user_set_moderator:
+        <div>
+            <form style="display: inline;" action="/users/set-status" method="post">
+                <input type="hidden" value="${user_id}" name="user_id"/>
+                <input type="hidden" value="promoted" name="action"/>
+                <label for="moderator_reason">Reason for promotion:</label>
+                <input type="text" size="50" name="reason" id="moderator_reason" required/>
+                <input type="submit" value="promote this user"/>
+            </form>
+        </div>
+    %endif
+    %if user_set_banned:
+        <div>
+            <form style="display: inline;" action="/users/set-status" method="post">
+                <input type="hidden" value="${user_id}" name="user_id"/>
+                <input type="hidden" value="banned" name="action"/>
+                <label for="banning_reason">Reason for banning:</label>
+                <input type="text" size="50" name="reason" id="banning_reason" required/>
+                <input type="submit" value="ban this user"/>
+            </form>
+        </div>
+    %endif
+    %if user_candidate_password_timestamp:
+        <br/>
+        <div>
+            Recovery password set ${format_timestamp_friendly(user_candidate_password_timestamp)}<br/>
+            <form style="display: inline;" action="/users/accept-recovery-password" method="post">
+                <input type="hidden" value="${user_id}" name="user_id"/>
+                <label for="recovery_reason">Reason for recovering:</label>
+                <input type="text" size="50" name="reason" id="recovery_reason" value="Received in-game message." required/>
+                <input type="submit" value="accept recovery password"/>
+            </form>
+        </div>
+    %endif
+%endif
+
+<%include file="footer.html"/>
