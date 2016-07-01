@@ -15,11 +15,20 @@ from _common import (
 )
 
 _CHARACTER_NAME_MAX_LENGTH = 21
-_CHARACTER_NAME_RE = re.compile(r"[A-Z][a-z']* [A-Z][a-z']*")
+_CHARACTER_NAME_RE = re.compile(r"[A-Za-z][a-z']* [A-Za-z][a-z']*")
 _PASSWORD_MIN_LENGTH = 4
 
 _logger = logging.getLogger('handlers.login')
 
+def _normalise_name(user_name):
+    (first_name, last_name) = user_name.lower().split()
+    return "{c1}{n1} {c2}{n2}".format(
+        c1=first_name[0].upper(),
+        n1=first_name[1:],
+        c2=last_name[0].upper(),
+        n2=last_name[1:],
+    )
+    
 def _validate_credentials(handler):
     username = handler.get_argument("username", default='').strip()
     password = handler.get_argument("password", default='')
@@ -27,7 +36,7 @@ def _validate_credentials(handler):
         raise tornado.web.HTTPError(422, reason="Character-name is invalid")
     if len(password) < _PASSWORD_MIN_LENGTH:
         raise tornado.web.HTTPError(422, reason="Password is too short")
-    return (username, password)
+    return (_normalise_name(username), password)
 
 class LoginHandler(Handler):
     def get(self):
