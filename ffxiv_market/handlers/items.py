@@ -90,6 +90,9 @@ class ItemsHandler(Handler):
             max_age=(context['page']['time_current'] - _ONE_WEEK),
         )
         
+        context['page']['header_extra'] = [
+            '<script src="/static/ajax.js"></script>',
+        ]
         context.update({
             'crystals_list': crystals_list,
             'watch_list': watch_list,
@@ -100,9 +103,6 @@ class ItemsHandler(Handler):
             'valuable_list': valuable_list,
             'stale_list': stale_list,
             'updated_list': updated_list,
-            'headers_extra': [
-                '<script src="/static/ajax.js"></script>',
-            ],
         })
         self._render('items.html', context)
 
