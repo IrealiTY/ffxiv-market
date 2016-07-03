@@ -1,6 +1,9 @@
+import logging
 import urllib2
 
 import bs4
+
+_logger = logging.getLogger('gamerescape')
 
 def build_url(common_item_name):
     return "http://ffxiv.gamerescape.com/wiki/{item}".format(
@@ -8,8 +11,12 @@ def build_url(common_item_name):
     )
     
 def parse_related(common_item_name):
+    _logger.info("Querying Gamer Escape wiki for {item} at {url}".format(
+        item=common_item_name,
+        url=build_url(common_item_name),
+    ))
     data = urllib2.urlopen(build_url(common_item_name)).read()
-    soup = bs4.BeautifulSoup(data)
+    soup = bs4.BeautifulSoup(data, "html.parser")
     del data
     
     crafted_from = []
