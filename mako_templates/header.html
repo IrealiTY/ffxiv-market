@@ -1,54 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+
     <head>
         <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>${site['site_name']} - ${page['title']}</title>
+        <meta name="description" content="${site['site_name']} is a crowd-sourced database of market board information for Final Fantasy XIV" />
+        <meta name="keywords" content="FFXIV, Final Fantasy XIV, Heavensward, Realm Reborn, Marketboard, Market" />
+        <meta name="author" content="Neil Tallim" />
+
         <link rel="icon" href="/static/favicon.ico">
-        <script src="//code.jquery.com/jquery-2.2.4.min.js"></script>
-        <script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-        <script src="/static/formatting.js"></script>
+
+
         %for header in page['header_extra']:
             ${header}
         %endfor
-        <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"/>
-        <link rel="stylesheet" type="text/css" href="/static/style.css"/>
+        
+        <!--Base CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <link href="/static/css//font-awesome.min.css" rel="stylesheet" />
+        
+        <!--Main Style -->
+        <link href="/static/css/style.css" rel="stylesheet">
+
     </head>
     <body>
-        <div>
-            <a href="/">${site['site_name']}</a>
-            <div style="float: right;">
-                %if role['active']:
-                    Welcome, <a href="/users/${identity['user_id']}">${identity['user_name']}</a>
-                %endif
-                %if role['moderator']:
-                    <a href="/flags">flags (${notifications['flags']})</a>
-                    <a href="/users">users</a>
-                %endif
-                %if role['active']:
-                    <a href="/logout">logout</a>
-                %endif
-                <a href="/about">about</a>
+    <div class="headerbar">
+        <div class="headerbar-left">
+            <div class="logo">
+                <a href="/"><h1>${site['site_name']}</h1></a>
             </div>
-            %if role['active']:
-                <br/>
-                <form action="/items/price-update" method="post" style="display: inline;">
-                    <input type="text" name="name" id="itemselect" required/>
-                    @
-                    <input type="number" name="value" min="0" max="999999999" size="9" autocomplete="off"/>
-                    gil
-                    <input type="submit" value="go"/>
-                </form>
-                %if role['active']:
-                    <script>
-                        $(function(){
-                            var items = [${','.join('"{item}"'.format(item=i) for i in page['all_item_names'])}];
-                            $("#itemselect").autocomplete({
-                                source: items
-                            });
-                        });
-                    </script>
-                %endif  
-            %endif
+            <%doc>
+            <button class="button-menu-mobile open-left">
+            <i class="fa fa-bars"></i>
+            </button>
+            </%doc>
         </div>
-        <div style="clear: both;"></div>
-        <hr/>
+
+        <!-- Navigation -->
+
+         <nav class="navbar navbar-default" role="navigation">
+             <div class="container">
+                    <div class="navbar-collapse2">
+                        <ul class="nav navbar-nav hidden-xs">
+                            <li class="nav-item active">
+                            %if role['active']:
+                            Welcome, <a class="nav-link" href="/users/${identity['user_id']}">${identity['user_name']}</a>
+                            %endif
+                            </li>
+                            %if role['moderator']:
+                            <li class="nav-item active"><a class="nav-link" href="/flags">flags (${notifications['flags']})</a></li>
+                            <li class="nav-item active"><a class="nav-link" href="/users">users</a></li>
+                            %endif
+                            %if role['active']:
+                            <li class="nav-item active"><a class="nav-link" href="/logout">logout</a></li>
+                            %endif
+                            <li class="nav-item active"><a class="nav-link" href="/about">about</a></li>
+                            </ul>
+                    </div>
+            </div>
+         </nav>
+    </div>
+    <div class="left side-menu">
+                    %if role['active']:
+                    <br/>
+                    <form action="/items/price-update" method="post" style="display: inline;">
+                        <input type="text" name="name" id="itemselect" required/>
+                        @
+                        <input type="number" name="value" min="0" max="999999999" size="9" autocomplete="off"/>
+                        gil
+                        <input type="submit" value="go"/>
+                    </form>
+                    %if role['active']:
+                        <script>
+                            $(function(){
+                                var items = [${','.join('"{item}"'.format(item=i) for i in page['all_item_names'])}];
+                                $("#itemselect").autocomplete({
+                                    source: items
+                                });
+                            });
+                        </script>
+                    %endif  
+                %endif
+            </div>
+    </div>
+    <div class="content">
