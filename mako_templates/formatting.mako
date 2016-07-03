@@ -33,17 +33,17 @@ if age == 1:
 <%def name="_render_item(item_ref, callback_id)">
     <a href="/items/${item_ref.item_state.id}">${item_ref.item_state.name}</a>
     @ <span id="prc-${callback_id}">${item_ref.item_state.price.value and '{p:,}'.format(p=item_ref.item_state.price.value) or 'none'}</span>
-    %if item_ref.item_state.price.value and item_ref.average and item_ref.item_state.price.timestamp > (page['time_current'] - 43200):
-        <%
-            price_delta = item_ref.item_state.price.value - item_ref.average
-        %>
-        %if price_delta < 0:
-            <img src="/static/loss.png"/> ${price_delta * -1}</img>
-        %elif price_delta > 0:
-            <img src="/static/gain.png"/> ${price_delta}</img>
-        %endif
-    %endif
     <div ${"id=\"ts-{callback_id}\" onclick=\"$('#frm-{callback_id}').show('blind');\"".format(callback_id=callback_id)} style="display: inline;">
+        %if item_ref.item_state.price.value and item_ref.average and item_ref.item_state.price.timestamp > (page['time_current'] - 43200):
+            <%
+                price_delta = item_ref.item_state.price.value - item_ref.average
+            %>
+            %if price_delta < 0:
+                <img src="/static/loss.png"/> ${price_delta * -1}
+            %elif price_delta > 0:
+                <img src="/static/gain.png"/> ${price_delta}
+            %endif
+        %endif
         ${render_timestamp(item_ref.item_state.price.timestamp)}
         <div style="display: none;" id="frm-${callback_id}">
             <form class="inl-up">

@@ -36,7 +36,7 @@ def _validate_credentials(handler):
         raise tornado.web.HTTPError(422, reason="Character-name is invalid")
     if len(password) < _PASSWORD_MIN_LENGTH:
         raise tornado.web.HTTPError(422, reason="Password is too short")
-    return (_normalise_name(username), password)
+    return (_normalise_name(username).encode('utf-8'), password.encode('utf-8'))
 
 class LoginHandler(Handler):
     def get(self):

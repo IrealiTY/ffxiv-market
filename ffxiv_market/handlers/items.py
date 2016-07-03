@@ -50,7 +50,12 @@ def _normalise_item_name(item_name, include_hq=True):
         item_name.append('HQ')
         
     return ' '.join(item_name)
-    
+
+def _get_nq_name(item_name):
+    if item_name.endswith(' HQ'):
+        return item_name[:-3]
+    return item_name
+
 class ItemsHandler(Handler):
     @tornado.web.authenticated
     def get(self):
@@ -85,6 +90,9 @@ class ItemsHandler(Handler):
             max_age=(context['page']['time_current'] - _ONE_WEEK),
         )
         
+        context['page']['header_extra'] = [
+            '<script src="/static/ajax.js"></script>',
+        ]
         context.update({
             'crystals_list': crystals_list,
             'watch_list': watch_list,
@@ -95,22 +103,16 @@ class ItemsHandler(Handler):
             'valuable_list': valuable_list,
             'stale_list': stale_list,
             'updated_list': updated_list,
-            'headers_extra': [
-                '<script src="/static/ajax.js"></script>',
-            ],
         })
         self._render('items.html', context)
 
 class ItemHandler(Handler):
     def _get_quality_counterpart(self, item_name):
         #Determine if there's an HQ/NQ counterpart
-        item_is_hq = False
-        if item_name.endswith(' HQ'):
-            quality_counterpart_name = item_name[:-3]
-            item_is_hq = True
-        else:
-            quality_counterpart_name = item_name + ' HQ'
-        return DATABASE.items_get_latest_by_name(quality_counterpart_name)
+        nq_name = _get_nq_name(item_name)
+        if nq_name == item_name:
+            return DATABASE.items_get_latest_by_name(item_name + ' HQ')
+        return DATABASE.items_get_latest_by_name(nq_name)
         
     def _normalise_data(self, price_data, current_time):
         timescale = CONFIG['graphing']['timescale_seconds']
@@ -376,7 +378,7 @@ class RelatedItemsUpdateHandler(Handler):
         context = self._build_common_context()
         restrict_moderator(context)
         
-        (crafted_from, crafts_into) = gamerescape.parse_related(item_name)
+        (crafted_from, crafts_into) = gamerescape.parse_related(_get_nq_name(item_name))
         DATABASE.related_set(item_id,
             self._get_item_ids(crafted_from),
             self._get_item_ids(crafts_into),

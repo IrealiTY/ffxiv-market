@@ -590,7 +590,7 @@ class _Database(object):
             for (ts, value) in self._iterate_results(cursor):
                 if value:
                     timestamp = end_time - _datetime_to_epoch(ts)
-                    timeslices[timestamp / _THREE_HOURS].append(value)
+                    timeslices[int(timestamp / _THREE_HOURS)].append(value)
         if len(timeslices) == 0:
             return None
         return int(sum(((max(v) + min(v)) / 2.0) for v in timeslices.values()) / len(timeslices))
