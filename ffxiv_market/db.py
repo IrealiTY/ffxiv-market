@@ -29,8 +29,10 @@ _logger = logging.getLogger('db')
 #Schema
 """
 CREATE TABLE items(
-    id SERIAL PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL
+    id INTEGER PRIMARY KEY,
+    can_be_hq BOOLEAN DEFAULT false,
+    name TEXT UNIQUE NOT NULL,
+    lodestone_id TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE users(
@@ -56,6 +58,7 @@ CREATE TABLE user_interactions(
 
 CREATE TABLE prices(
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    hq BOOLEAN NOT NULL,
     ts TIMESTAMP DEFAULT DATE_TRUNC('second', NOW() AT TIME ZONE 'utc') NOT NULL,
     value INTEGER NOT NULL,
     submitting_user INTEGER NOT NULL REFERENCES users(id),
@@ -64,14 +67,16 @@ CREATE TABLE prices(
 
 CREATE TABLE flags(
     price_item_id INTEGER NOT NULL,
+    price_hq BOOLEAN NOT NULL,
     price_ts TIMESTAMP NOT NULL,
     reported_by INTEGER NOT NULL REFERENCES users(id),
-    PRIMARY KEY (price_item_id, price_ts),
-    FOREIGN KEY (price_item_id, price_ts) REFERENCES prices(item_id, ts) ON DELETE CASCADE
+    PRIMARY KEY (price_item_id, price_hq, price_ts),
+    FOREIGN KEY (price_item_id, price_hq, price_ts) REFERENCES prices(item_id, hq, ts) ON DELETE CASCADE
 );
 
 CREATE TABLE flags_history(
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    price_hq BOOLEAN NOT NULL,
     price_ts TIMESTAMP NOT NULL,
     submitting_user INTEGER NOT NULL REFERENCES users(id),
     reported_by INTEGER NOT NULL REFERENCES users(id),
@@ -81,6 +86,7 @@ CREATE TABLE flags_history(
 CREATE TABLE watchlist(
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    hq BOOLEAN NOT NULL,
     PRIMARY KEY (user_id, item_id)
 );
 
@@ -112,6 +118,7 @@ class _Cache(object):
     """
     _lock = None
     _item_refs = None
+    _item_refs_hq = None
     _item_refs_by_name = None
     
     def __init__(self, item_data):
@@ -119,6 +126,9 @@ class _Cache(object):
         self._item_refs = list(item_data)
         self._item_refs.sort(key=(lambda i: i.item_state.id))
         self._item_refs_by_name = dict((i.item_state.name.lower(), i) for i in self._item_refs)
+        self._item_refs_hq = list(item_data_hq)
+        self._item_refs_hq.sort(key=(lambda i: i.item_state.id))
+        self._item_refs_by_name.update(dict((i.item_state.name.lower(), i) for i in self._item_refs_hq))
         
     def _find_index(self, item_id):
         low = 0
@@ -159,17 +169,12 @@ class _Cache(object):
         with self._lock:
             return [item_ref for (name, item_ref) in self._item_refs_by_name.iteritems() if substring in name]
             
-    def get_item_by_id(self, item_id):
+    def get_item_by_id(self, item_id, hq):
         with self._lock:
             record_index = self._find_index(item_id)
             if record_index is None:
                 return None
             return self._item_refs[record_index]
-            
-    def get_item_by_name(self, item_name):
-        item_name = item_name.lower()
-        with self._lock:
-            return self._item_refs_by_name.get(item_name)
             
     def query(self, query_func):
         with self._lock:
@@ -216,7 +221,7 @@ class _Database(object):
         )
         _logger.info("Initialising cache...")
         self._cache = _Cache(self._get_cache_data())
-        _logger.info("Cache initialised...")
+        _logger.info("Cache initialised")
         
     def _iterate_results(self, cursor, buffer_size=128):
         while True:
@@ -229,11 +234,15 @@ class _Database(object):
                 
     def _get_cache_data(self):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT DISTINCT ON (items.id) items.name, items.id, prices.ts, prices.value
+            cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.can_be_hq, prices.ts, prices.value, items.name
                 FROM items, prices
                 WHERE prices.item_id = items.id
                 ORDER BY items.id ASC, prices.ts DESC""")
-            for (item_name, item_id, ts, value) in self._iterate_results(cursor, buffer_size=512):
+            for (item_id, can_be_hq, ts, value, item_name) in self._iterate_results(cursor, buffer_size=512):
+                hq_variant = None
+                if can_be_hq:
+                    hq_variant = 
+                
                 yield ItemRef(
                     ItemState(
                         item_name, item_id, ItemPrice(
@@ -508,19 +517,12 @@ class _Database(object):
                 'comment': comment,
             })
             
-    def items_get_names(self, filter=''):
-        return [item_ref.item_state.name for item_ref in self._cache.get_items_by_substring(filter)]
-        
-    def items_name_to_id(self, item_name):
-        item_ref = self._cache.get_item_by_name(item_name)
-        return item_ref and item_ref.item_state.id
+    def items_search(self, filter=''):
+        return self._cache.get_items_by_substring(filter)
         
     def items_id_to_name(self, item_id):
         item_ref = self._cache.get_item_by_id(item_id)
         return item_ref and item_ref.item_state.name
-        
-    def items_get_latest_by_name(self, item_name):
-        return self._cache.get_item_by_name(item_name)
         
     def items_get_latest_by_id(self, item_id):
         return self._cache.get_item_by_id(item_id)
