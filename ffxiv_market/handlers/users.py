@@ -113,7 +113,7 @@ class ProfileHandler(Handler):
          unresolved_flags, valid_flags_reported, invalid_flags_reported,
         ) = profile
         
-        context['page']['title'] = profile[0]
+        context['rendering']['title'] = profile[0]
         context.update({
             'user_id': user_id,
             'user_name': profile[0],

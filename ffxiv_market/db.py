@@ -118,7 +118,7 @@ class _Cache(object):
         self._lock = threading.Lock()
         self._item_refs = list(item_data)
         self._item_refs.sort(key=(lambda i: i.item_state.id))
-        self._item_refs_by_name = dict((i.item_state.name, i) for i in self._item_refs)
+        self._item_refs_by_name = dict((i.item_state.name.lower(), i) for i in self._item_refs)
         
     def _find_index(self, item_id):
         low = 0
@@ -138,11 +138,11 @@ class _Cache(object):
         with self._lock:
             record_index = self._find_index(item_ref.item_state.id)
             if record_index is None:
-                self._item_refs_by_name[item_ref.item_state.name] = item_ref
+                self._item_refs_by_name[item_ref.item_state.name.lower()] = item_ref
                 self._item_refs.append(item_ref)
                 self._item_refs.sort(key=(lambda i: i.item_state.id))
             elif self._item_refs[record_index].item_state.price.timestamp < item_ref.item_state.price.timestamp:
-                self._item_refs_by_name[self._item_refs[record_index].item_state.name] = item_ref
+                self._item_refs_by_name[self._item_refs[record_index].item_state.name.lower()] = item_ref
                 self._item_refs[record_index] = item_ref
                 
     def delete(self, item_id, timestamp):
@@ -154,9 +154,10 @@ class _Cache(object):
                     return True
         return False
         
-    def get_item_names(self):
+    def get_items_by_substring(self, substring):
+        substring = substring.lower()
         with self._lock:
-            return self._item_refs_by_name.keys()
+            return [item_ref for (name, item_ref) in self._item_refs_by_name.iteritems() if substring in name]
             
     def get_item_by_id(self, item_id):
         with self._lock:
@@ -166,6 +167,7 @@ class _Cache(object):
             return self._item_refs[record_index]
             
     def get_item_by_name(self, item_name):
+        item_name = item_name.lower()
         with self._lock:
             return self._item_refs_by_name.get(item_name)
             
@@ -506,8 +508,8 @@ class _Database(object):
                 'comment': comment,
             })
             
-    def items_get_names(self):
-        return self._cache.get_item_names()
+    def items_get_names(self, filter=''):
+        return [item_ref.item_state.name for item_ref in self._cache.get_items_by_substring(filter)]
         
     def items_name_to_id(self, item_name):
         item_ref = self._cache.get_item_by_name(item_name)

@@ -25,15 +25,15 @@
         <span style="font-size: 1.5em;">Items with no stock</span><br/>
         ${render_item_list(DATABASE.items_get_no_supply(
             limit=CONFIG['lists']['no_supply']['limit'],
-            max_age=(page['time_current'] - CONFIG['lists']['no_supply']['max_age']),
+            max_age=(rendering['time_current'] - CONFIG['lists']['no_supply']['max_age']),
         ), 'nst')}
     </div>
     <div style="float: left;">
         <span style="font-size: 1.5em;">Stale data</span><br/>
         ${render_item_list(DATABASE.items_get_stale(
             limit=CONFIG['lists']['stale']['limit'],
-            min_age=(page['time_current'] - CONFIG['lists']['stale']['min_age']),
-            max_age=(page['time_current'] - CONFIG['lists']['stale']['max_age']),
+            min_age=(rendering['time_current'] - CONFIG['lists']['stale']['min_age']),
+            max_age=(rendering['time_current'] - CONFIG['lists']['stale']['max_age']),
         ), 'sta')}
     </div>
     <div style="clear: both;"></div>
@@ -41,7 +41,7 @@
         <span style="font-size: 1.5em;">Most valuable (${CONFIG['lists']['most_valuable']['min_value']}-${CONFIG['lists']['most_valuable']['max_value']})</span><br/>
         ${render_item_list(DATABASE.items_get_most_valuable(
             limit=CONFIG['lists']['most_valuable']['limit'],
-            max_age=(page['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
+            max_age=(rendering['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
             min_value=CONFIG['lists']['most_valuable']['min_value'],
             max_value=CONFIG['lists']['most_valuable']['max_value'],
         ), 'val')}
@@ -50,21 +50,9 @@
         <span style="font-size: 1.5em;">Recently updated</span><br/>
         ${render_item_list(DATABASE.items_get_recently_updated(
             limit=CONFIG['lists']['recently_updated']['limit'],
-            max_age=(page['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
+            max_age=(rendering['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
         ), 'rec')}
     </div>
 </div>
 
 <%include file="footer.html"/>
-
-
-
-crystals_list = 
-        watch_list = 
-        most_watched_list = 
-        
-        unavailable_list = 
-        valuable_list = 
-        
-        stale_list = 
-        updated_list = 

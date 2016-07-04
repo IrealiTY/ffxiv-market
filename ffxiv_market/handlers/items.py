@@ -1,4 +1,5 @@
 import collections
+import json
 import logging
 import re
 
@@ -61,7 +62,7 @@ class ItemsHandler(Handler):
     def get(self):
         context = self._common_setup(page_title="Items")
         
-        context['page']['header_extra'] = [
+        context['rendering']['header_extra'] = [
             '<script src="/static/ajax.js"></script>',
         ]
         context.update({
@@ -196,7 +197,7 @@ class ItemHandler(Handler):
             ],
         )
         
-        price_data = DATABASE.items_get_prices(item_id, max_age=(context['page']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
+        price_data = DATABASE.items_get_prices(item_id, max_age=(context['rendering']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
         
         #Defaults
         low_month = low_week = low_24h = None
@@ -204,11 +205,11 @@ class ItemHandler(Handler):
         average_month = average_week = average_24h = None
         trend_weekly = trend_daily = trend_current = None
         
-        (normalised_data, normalised_data_timescale) = self._normalise_data(price_data, context['page']['time_current'])
+        (normalised_data, normalised_data_timescale) = self._normalise_data(price_data, context['rendering']['time_current'])
         if normalised_data:
             (   low_24h, low_week, low_month,
                 high_24h, high_week, high_month,
-            ) = self._compute_maxmin(price_data, context['page']['time_current'])
+            ) = self._compute_maxmin(price_data, context['rendering']['time_current'])
             
             (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data, normalised_data_timescale)
             (average_24h, average_week, average_month) = self._compute_averages(timeblock_days, timeblock_weeks)
@@ -264,7 +265,7 @@ class ItemHandler(Handler):
             'watching': DATABASE.watchlist_is_watching(context['identity']['user_id'], item_id),
         })
         if not context['role']['moderator']:
-            context['delete_lockout_time'] = context['page']['time_current'] - CONFIG['data']['prices']['delete_window']
+            context['delete_lockout_time'] = context['rendering']['time_current'] - CONFIG['data']['prices']['delete_window']
         self._render('item.html', context)
         
 class PriceUpdateHandler(Handler):
@@ -309,7 +310,7 @@ class PriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
+            if context['rendering']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
             else:
                 DATABASE.items_delete_price(item_id, timestamp, context['identity']['user_id'])
@@ -370,7 +371,7 @@ class AjaxPriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
+            if context['rendering']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
                 deleted = False
             else:
@@ -400,4 +401,10 @@ class AjaxUnwatchHandler(Handler):
         
         DATABASE.watchlist_remove(context['identity']['user_id'], item_id)
         self.write({})
+        
+class AjaxQueryNames(Handler):
+    @tornado.web.authenticated
+    def post(self):
+        item_name = int(self.get_argument("term"))
+        self.write(json.dumps(DATABASE.items_get_names(substring=item_name)))
         

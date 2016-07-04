@@ -146,7 +146,7 @@
                 data.addColumn('number', 'Price in gil');
                 data.addRows([
                     %for datum in normalised_data:
-                        [new Date(${(page['time_current'] - ((len(normalised_data) - loop.index - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${loop.index < final_comma and ',' or ''}
+                        [new Date(${(rendering['time_current'] - ((len(normalised_data) - loop.index - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${loop.index < final_comma and ',' or ''}
                     %endfor
                 ]);
                 var options = {
@@ -159,8 +159,8 @@
                     },
                     hAxis: {
                         viewWindow: {
-                            min: new Date(${(page['time_current'] - 3600 * 24 * CONFIG['graphing']['days']) * 1000}),
-                            max: new Date(${(page['time_current'] * 1000)})
+                            min: new Date(${(rendering['time_current'] - 3600 * 24 * CONFIG['graphing']['days']) * 1000}),
+                            max: new Date(${(rendering['time_current'] * 1000)})
                         },
                         gridlines: {
                             count: -1,

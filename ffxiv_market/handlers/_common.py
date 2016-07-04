@@ -89,11 +89,10 @@ class Handler(tornado.web.RequestHandler):
         moderator = identity['status'] in (USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,)
         
         return {
-            'page': {
+            'rendering': {
                 'title': page_title,
                 'time_current': int(time.time()),
-                'all_item_names': (),
-                'header_extra': header_extra or [],
+                'html_headers': [],
             },
             'identity': identity,
             'role': {
@@ -125,12 +124,13 @@ class Handler(tornado.web.RequestHandler):
             restrict(context)
             
         if context['identity']['user_id'] is not None:
-            context['page']['all_item_names'] = DATABASE.items_get_names()
+            context['rendering']['all_item_names'] = DATABASE.items_get_names()
             
         return context
         
-    def _render(self, template, context):
+    def _render(self, template, context, html_headers=()):
         self.set_header('Content-Type', 'text/html')
+        context['rendering']['html_headers'].extend(html_headers)
         self.write(_MAKO_ENGINE.render_page(template, **context))
         
     def write_error(self, status_code, **kwargs):
