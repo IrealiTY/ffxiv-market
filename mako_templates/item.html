@@ -145,8 +145,8 @@
                 data.addColumn('datetime', 'Time (${normalised_data_timescale / 3600.0}-hour windows)');
                 data.addColumn('number', 'Price in gil');
                 data.addRows([
-                    %for (i, datum) in enumerate(normalised_data):
-                        [new Date(${(page['time_current'] - ((len(normalised_data) - i - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${i < final_comma and ',' or ''}
+                    %for datum in normalised_data:
+                        [new Date(${(page['time_current'] - ((len(normalised_data) - loop.index - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${loop.index < final_comma and ',' or ''}
                     %endfor
                 ]);
                 var options = {

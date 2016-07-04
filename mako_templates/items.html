@@ -4,36 +4,67 @@
 
 <div style="float: left; padding-right: 15px;">
     <div>
-        <span style="font-size: 1.5em;">Watched items (${watch_count}/${watch_limit})</span><br/>
-        ${render_item_list(watch_list, 'wat')}
+        <span style="font-size: 1.5em;">Watched items</span><br/>
+        ${render_item_list(DATABASE.watchlist_list(
+            user_id=identity['user_id'],
+        ), 'wat')}
     </div>
     <div>
         <span style="font-size: 1.5em;">Crystals</span><br/>
-        ${render_item_list(crystals_list, 'cry')}
+        ${render_item_list((DATABASE.items_get_latest_by_name(name) for name in crystal_list), 'cry')}
     </div>
     <div>
         <span style="font-size: 1.5em;">Most-watched items</span><br/>
-        ${render_item_list(most_watched_list, 'mwt')}
+        ${render_item_list(DATABASE.watchlist_get_most_watched(
+            limit=CONFIG['lists']['item_watch']['limit'],
+        ), 'mwt')}
     </div>
 </div>
 <div style="float: left;">
     <div style="float: left; padding-right: 15px;">
         <span style="font-size: 1.5em;">Items with no stock</span><br/>
-        ${render_item_list(unavailable_list, 'act')}
+        ${render_item_list(DATABASE.items_get_no_supply(
+            limit=CONFIG['lists']['no_supply']['limit'],
+            max_age=(page['time_current'] - CONFIG['lists']['no_supply']['max_age']),
+        ), 'nst')}
     </div>
     <div style="float: left;">
         <span style="font-size: 1.5em;">Stale data</span><br/>
-        ${render_item_list(stale_list, 'sta')}
+        ${render_item_list(DATABASE.items_get_stale(
+            limit=CONFIG['lists']['stale']['limit'],
+            min_age=(page['time_current'] - CONFIG['lists']['stale']['min_age']),
+            max_age=(page['time_current'] - CONFIG['lists']['stale']['max_age']),
+        ), 'sta')}
     </div>
     <div style="clear: both;"></div>
     <div style="float: left; padding-right: 15px;">
         <span style="font-size: 1.5em;">Most valuable (${CONFIG['lists']['most_valuable']['min_value']}-${CONFIG['lists']['most_valuable']['max_value']})</span><br/>
-        ${render_item_list(valuable_list, 'val')}
+        ${render_item_list(DATABASE.items_get_most_valuable(
+            limit=CONFIG['lists']['most_valuable']['limit'],
+            max_age=(page['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
+            min_value=CONFIG['lists']['most_valuable']['min_value'],
+            max_value=CONFIG['lists']['most_valuable']['max_value'],
+        ), 'val')}
     </div>
     <div style="float: left;">
         <span style="font-size: 1.5em;">Recently updated</span><br/>
-        ${render_item_list(updated_list, 'rec')}
+        ${render_item_list(DATABASE.items_get_recently_updated(
+            limit=CONFIG['lists']['recently_updated']['limit'],
+            max_age=(page['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
+        ), 'rec')}
     </div>
 </div>
 
 <%include file="footer.html"/>
+
+
+
+crystals_list = 
+        watch_list = 
+        most_watched_list = 
+        
+        unavailable_list = 
+        valuable_list = 
+        
+        stale_list = 
+        updated_list = 

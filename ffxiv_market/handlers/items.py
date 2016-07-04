@@ -61,48 +61,11 @@ class ItemsHandler(Handler):
     def get(self):
         context = self._common_setup(page_title="Items")
         
-        crystals_list = [DATABASE.items_get_latest_by_name(name) for name in _CRYSTAL_LIST]
-        watch_list = DATABASE.watchlist_list(
-            user_id=context['identity']['user_id'],
-        )
-        most_watched_list = DATABASE.watchlist_get_most_watched(
-            limit=CONFIG['lists']['item_watch']['limit'],
-        )
-        
-        unavailable_list = DATABASE.items_get_no_supply(
-            limit=CONFIG['lists']['no_supply']['limit'],
-            max_age=(context['page']['time_current'] - CONFIG['lists']['no_supply']['max_age']),
-        )
-        valuable_list = DATABASE.items_get_most_valuable(
-            limit=CONFIG['lists']['most_valuable']['limit'],
-            max_age=(context['page']['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
-            min_value=CONFIG['lists']['most_valuable']['min_value'],
-            max_value=CONFIG['lists']['most_valuable']['max_value'],
-        )
-        
-        stale_list = DATABASE.items_get_stale(
-            limit=CONFIG['lists']['stale']['limit'],
-            min_age=(context['page']['time_current'] - CONFIG['lists']['stale']['min_age']),
-            max_age=(context['page']['time_current'] - CONFIG['lists']['stale']['max_age']),
-        )
-        updated_list = DATABASE.items_get_recently_updated(
-            limit=CONFIG['lists']['recently_updated']['limit'],
-            max_age=(context['page']['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
-        )
-        
         context['page']['header_extra'] = [
             '<script src="/static/ajax.js"></script>',
         ]
         context.update({
-            'crystals_list': crystals_list,
-            'watch_list': watch_list,
-            'watch_count': len(watch_list),
-            'watch_limit': CONFIG['lists']['item_watch']['limit'],
-            'most_watched_list': most_watched_list,
-            'unavailable_list': unavailable_list,
-            'valuable_list': valuable_list,
-            'stale_list': stale_list,
-            'updated_list': updated_list,
+            'crystal_list': _CRYSTAL_LIST,
         })
         self._render('items.html', context)
 
