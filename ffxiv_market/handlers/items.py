@@ -80,7 +80,7 @@ class ItemHandler(Handler):
         
     def _normalise_data(self, price_data, current_time):
         data_points = CONFIG['graphing']['data_points']
-        timescale = int(CONFIG['graphing']['days'] / float(data_points))
+        timescale = int(_ONE_DAY * CONFIG['graphing']['days'] / float(data_points))
         
         ages = collections.defaultdict(list)
         for price in price_data:
@@ -404,7 +404,7 @@ class AjaxUnwatchHandler(Handler):
         
 class AjaxQueryNames(Handler):
     @tornado.web.authenticated
-    def post(self):
-        item_name = int(self.get_argument("term"))
-        self.write(json.dumps(DATABASE.items_get_names(substring=item_name)))
+    def get(self):
+        item_name = self.get_argument("term")
+        self.write(json.dumps(DATABASE.items_get_names(filter=item_name)))
         
