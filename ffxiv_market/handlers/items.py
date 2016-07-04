@@ -25,9 +25,12 @@ _ONE_MONTH = _ONE_WEEK * 4
 _RE_ROMAN_NUMERALS = re.compile(r'^[ivxlc]+$')
 
 _CRYSTAL_LIST = (
-    'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
-    'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
-    'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+    #'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
+    2, 3, 4, 5, 6, 7,
+    #'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
+    8, 9, 10, 11, 12, 13,
+    #'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+    14, 15, 16, 17, 18, 19,
 )
 
 _logger = logging.getLogger('handlers.items')
@@ -406,5 +409,8 @@ class AjaxQueryNames(Handler):
     @tornado.web.authenticated
     def get(self):
         item_name = self.get_argument("term")
-        self.write(json.dumps(DATABASE.items_get_names(filter=item_name)))
+        self.write(json.dumps([
+            {'label': item_ref.item_state.name, 'value': item_ref.item_state.id,}
+            for item_ref in DATABASE.items_get_names(filter=item_name)
+        ]))
         

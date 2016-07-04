@@ -11,7 +11,7 @@
     </div>
     <div>
         <span style="font-size: 1.5em;">Crystals</span><br/>
-        ${render_item_list((DATABASE.items_get_latest_by_name(name) for name in crystal_list), 'cry')}
+        ${render_item_list((DATABASE.items_get_latest_by_id(id) for id in crystal_list), 'cry')}
     </div>
     <div>
         <span style="font-size: 1.5em;">Most-watched items</span><br/>
