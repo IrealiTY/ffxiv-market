@@ -91,6 +91,7 @@ class Handler(tornado.web.RequestHandler):
         moderator = identity['status'] in (USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,)
         
         return {
+            'CONFIG': CONFIG,
             'page': {
                 'title': page_title,
                 'time_current': int(time.time()),

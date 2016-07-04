@@ -22,12 +22,12 @@
         ${render_item_list(unavailable_list, 'act')}
     </div>
     <div style="float: left;">
-        <span style="font-size: 1.5em;">Stale data (1-7 days)</span><br/>
+        <span style="font-size: 1.5em;">Stale data</span><br/>
         ${render_item_list(stale_list, 'sta')}
     </div>
     <div style="clear: both;"></div>
     <div style="float: left; padding-right: 15px;">
-        <span style="font-size: 1.5em;">Most valuable (250-7500)</span><br/>
+        <span style="font-size: 1.5em;">Most valuable (${CONFIG['lists']['most_valuable']['min_value']}-${CONFIG['lists']['most_valuable']['max_value']})</span><br/>
         ${render_item_list(valuable_list, 'val')}
     </div>
     <div style="float: left;">

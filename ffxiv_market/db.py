@@ -529,11 +529,11 @@ class _Database(object):
     def items_get_recently_updated(self, limit, max_age):
         return self._cache.query(lambda items: self._query__items_get_recently_updated(limit, max_age, items))
         
-    def _query__items_get_most_valuable(self, limit, max_age, min_price, max_price, items):
-        candidates = [i for i in items if i.item_state.price.timestamp > max_age and min_price <= i.item_state.price.value <= max_price]
+    def _query__items_get_most_valuable(self, limit, max_age, min_value, max_value, items):
+        candidates = [i for i in items if i.item_state.price.timestamp > max_age and min_value <= i.item_state.price.value <= max_value]
         return sorted(candidates, key=(lambda i: i.item_state.price.value), reverse=True)[:limit]
-    def items_get_most_valuable(self, limit, max_age, min_price, max_price):
-        return self._cache.query(lambda items: self._query__items_get_most_valuable(limit, max_age, min_price, max_price, items))
+    def items_get_most_valuable(self, limit, max_age, min_value, max_value):
+        return self._cache.query(lambda items: self._query__items_get_most_valuable(limit, max_age, min_value, max_value, items))
         
     def _query__items_get_no_supply(self, limit, max_age, items):
         candidates = [i for i in items if i.item_state.price.timestamp > max_age and i.item_state.price.value == 0]

@@ -37,7 +37,31 @@
     "prices": {
         "delete_lockout_seconds": 86400
     },
-    "profiles": {
-        "item_watch_limit": 50
+    "lists": {
+        "item_watch": {
+            "limit": 50
+        },
+        "most_watched": {
+            "limit": 50
+        },
+        "no_supply": {
+            "limit": 50,
+            "max_age": 604800
+        },
+        "most_valuable": {
+            "limit": 75,
+            "max_age": 172800,
+            "min_value": 250,
+            "max_value": 7500
+        },
+        "stale": {
+            "limit": 75,
+            "min_age": 86400,
+            "max_age": 604800
+        },
+        "recently_updated": {
+            "limit": 50,
+            "max_age": 604800
+        }
     }
 }

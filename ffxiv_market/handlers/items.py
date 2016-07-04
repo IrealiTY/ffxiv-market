@@ -66,28 +66,28 @@ class ItemsHandler(Handler):
             user_id=context['identity']['user_id'],
         )
         most_watched_list = DATABASE.watchlist_get_most_watched(
-            limit=50,
+            limit=CONFIG['lists']['item_watch']['limit'],
         )
         
         unavailable_list = DATABASE.items_get_no_supply(
-            limit=50,
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
+            limit=CONFIG['lists']['no_supply']['limit'],
+            max_age=(context['page']['time_current'] - CONFIG['lists']['no_supply']['max_age']),
         )
         valuable_list = DATABASE.items_get_most_valuable(
-            limit=(125 - len(unavailable_list)),
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
-            min_price=250,
-            max_price=7500,
+            limit=CONFIG['lists']['most_valuable']['limit'],
+            max_age=(context['page']['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
+            min_value=CONFIG['lists']['most_valuable']['min_value'],
+            max_value=CONFIG['lists']['most_valuable']['max_value'],
         )
         
         stale_list = DATABASE.items_get_stale(
-            limit=75,
-            min_age=(context['page']['time_current'] - _ONE_DAY),
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
+            limit=CONFIG['lists']['stale']['limit'],
+            min_age=(context['page']['time_current'] - CONFIG['lists']['stale']['min_age']),
+            max_age=(context['page']['time_current'] - CONFIG['lists']['stale']['max_age']),
         )
         updated_list = DATABASE.items_get_recently_updated(
-            limit=50,
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
+            limit=CONFIG['lists']['recently_updated']['limit'],
+            max_age=(context['page']['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
         )
         
         context['page']['header_extra'] = [
@@ -97,7 +97,7 @@ class ItemsHandler(Handler):
             'crystals_list': crystals_list,
             'watch_list': watch_list,
             'watch_count': len(watch_list),
-            'watch_limit': CONFIG['profiles']['item_watch_limit'],
+            'watch_limit': CONFIG['lists']['item_watch']['limit'],
             'most_watched_list': most_watched_list,
             'unavailable_list': unavailable_list,
             'valuable_list': valuable_list,
@@ -130,7 +130,7 @@ class ItemHandler(Handler):
             prices.append((age, int((max(pricing) + min(pricing)) / 2)))
         return prices
         
-    def _get_maxmin(self, price_data, current_time):
+    def _compute_maxmin(self, price_data, current_time):
         low_24h = low_week = low_month = None
         low_24h_value = low_week_value = low_month_value = 999999999
         high_24h = high_week = high_month = None
@@ -172,7 +172,7 @@ class ItemHandler(Handler):
             high_24h, high_week, high_month,
         )
         
-    def _get_timeblock_averages(self, normalised_data):
+    def _compute_timeblock_averages(self, normalised_data):
         seconds_per_day = 3600 * 24
         slices_per_day = seconds_per_day / CONFIG['graphing']['timescale_seconds']
         
@@ -185,14 +185,14 @@ class ItemHandler(Handler):
             
         return (days, weeks)
         
-    def _get_averages(self, timeblock_days, timeblock_weeks):
+    def _compute_averages(self, timeblock_days, timeblock_weeks):
         return (
             0 in timeblock_days and int(sum(timeblock_days[0]) / len(timeblock_days[0])) or None,
             0 in timeblock_weeks and int(sum(timeblock_weeks[0]) / len(timeblock_weeks[0])) or None,
             int(sum(int(sum(prices) / len(prices)) for prices in timeblock_weeks.values()) / len(timeblock_weeks)),
         )
         
-    def _get_trends(self, normalised_data, timeblock_days, timeblock_weeks):
+    def _compute_trends(self, normalised_data, timeblock_days, timeblock_weeks):
         if 0 in timeblock_weeks and 1 in timeblock_weeks:
             current_weekly_average = sum(timeblock_weeks[0]) / len(timeblock_weeks[0])
             previous_weekly_average = sum(timeblock_weeks[1]) / len(timeblock_weeks[1])
@@ -246,11 +246,11 @@ class ItemHandler(Handler):
         if normalised_data:
             (   low_24h, low_week, low_month,
                 high_24h, high_week, high_month,
-            ) = self._get_maxmin(price_data, context['page']['time_current'])
+            ) = self._compute_maxmin(price_data, context['page']['time_current'])
             
-            (timeblock_days, timeblock_weeks) = self._get_timeblock_averages(normalised_data)
-            (average_24h, average_week, average_month) = self._get_averages(timeblock_days, timeblock_weeks)
-            (trend_current, trend_daily, trend_weekly) = self._get_trends(normalised_data, timeblock_days, timeblock_weeks)
+            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data)
+            (average_24h, average_week, average_month) = self._compute_averages(timeblock_days, timeblock_weeks)
+            (trend_current, trend_daily, trend_weekly) = self._compute_trends(normalised_data, timeblock_days, timeblock_weeks)
             
         if len(normalised_data) > 1:
             #Reverse the data and pad holes
@@ -298,7 +298,7 @@ class ItemHandler(Handler):
             'trend_current': trend_current,
             'delete_lockout_time': 0, #Assume it's a moderator by default, to avoid resizing the table
             'watch_count': DATABASE.watchlist_count(context['identity']['user_id']),
-            'watch_limit': CONFIG['profiles']['item_watch_limit'],
+            'watch_limit': CONFIG['lists']['item_watch']['limit'],
             'watching': DATABASE.watchlist_is_watching(context['identity']['user_id'], item_id),
         })
         if not context['role']['moderator']:
@@ -423,7 +423,7 @@ class AjaxWatchHandler(Handler):
         context = self._build_common_context()
         user_id = context['identity']['user_id']
         
-        if DATABASE.watchlist_count(user_id) >= CONFIG['profiles']['item_watch_limit']:
+        if DATABASE.watchlist_count(user_id) >= CONFIG['lists']['item_watch']['limit']:
             raise tornado.web.HTTPError(409, reason='You cannot watch any more items')
             
         DATABASE.watchlist_add(user_id, item_id)
