@@ -99,12 +99,6 @@ class Handler(tornado.web.RequestHandler):
                 'header_extra': header_extra or [],
             },
             'identity': identity,
-            'site': {
-                'site_name': server['site_name'],
-                'game_server': server['game_server'],
-                'admin_name': server['admin_name'],
-                'admin_email': server['admin_email'],
-            },
             'role': {
                 'active': identity['status'] in (USER_STATUS_ACTIVE, USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,),
                 'moderator': moderator,

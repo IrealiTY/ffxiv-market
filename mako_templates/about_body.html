@@ -1,8 +1,9 @@
 <div class="about-topic">
     <span class="about-header">What is this site?</span><br/>
-    ${site['site_name']} is a crowd-sourced database of market board information for
-    ${site['game_server']}, freely shared under the belief that knowing market trends
-    will help both crafters and gatherers profit, without leading to a
+    ${CONFIG['server']['meta']['site_name']} is a crowd-sourced database of
+    market board information for ${CONFIG['server']['meta']['game_server']},
+    freely shared under the belief that knowing market trends will help both
+    crafters and gatherers profit, without encouraging a
     <a href="https://en.wikipedia.org/wiki/Prisoner%27s_dilemma">Prisoner's Dilemma</a>
     environment.
 </div>
@@ -72,9 +73,8 @@
 <div class="about-topic">
     <span class="about-header">How does authorisation work?</span><br/>
     When you request access, you must provide your character's name on
-    ${site['game_server']}. This will create a profile for you with its status set to
-    "unconfirmed", and you will get a unique login code, which you should
-    record for later use. 
+    ${CONFIG['server']['meta']['game_server']}. This will create a profile for
+    you with its status set to "unconfirmed". 
     <br/><br/>
     At this point, you must message a <a href="/users/moderators">moderator</a>
     in-game to be given access; this is to ensure that you are the person who
@@ -82,15 +82,18 @@
     <br/><br/>
     At any point, your profile may be banned if you are found to be acting
     against the spirit of this database.
+    <br/><br/>
+    If someone else registered in your name, use the password-recovery feature
+    to regain control; this, too, requires verification with a
+    <a href="/users/moderators">moderator</a>.
 </div>
 <div class="about-topic">
     <span class="about-header">Something broke or someone's abusing the site</span><br/>
-    The site's administrator is ${site['admin_name']}; send a tell in-game or send
-    e-mail to ${site['admin_email']}.
+    The site's administrator is ${CONFIG['server']['meta']['admin_name']}; send
+    a tell in-game or send e-mail to ${CONFIG['server']['meta']['admin_email']}.
     <br/><br/>
     <a href="/users/moderators">Moderators</a> have been appointed and can help with
-    cases of price vandalism or fake items, but only the administrator has the
-    ability to handle abuse.
+    cases of price vandalism or fake items.
 </div>
 <div class="about-topic">
     <span class="about-header">How can I report invalid data?</span><br/>

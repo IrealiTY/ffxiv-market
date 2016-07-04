@@ -1,24 +1,26 @@
 {
-    "cookie": {
-        "longevity_days": 28,
-        "auth_identifier": "auth"
-    },
     "logging": {
         "console": null,
         "level": "warn",
         "path": "/var/log/ffxiv-market.log"
     },
     "server": {
-        "port": 1506,
-        "address": "127.0.0.1",
-        "static_path": "/srv/ffxiv-market/static",
-        "mako_templates_path": "/srv/ffxiv-market/mako_templates",
-        "mako_modules_path": "/tmp/ffxiv-market/mako_modules",
-        "hmac": "Some secret sequence of words",
-        "admin_name": "Your Character",
-        "admin_email": "some@address.thing",
-        "game_server": "Ultros",
-        "site_name": "Ultros Market Database"
+        "tornado": {
+            "address": "127.0.0.1",
+            "port": 1506,
+            "static_path": "/srv/ffxiv-market/static",
+            "hmac": "Some secret sequence of words"
+        },
+        "mako": {
+            "templates_path": "/srv/ffxiv-market/mako_templates",
+            "modules_path": "/tmp/ffxiv-market/mako_modules"
+        },
+        "meta": {
+            "admin_name": "Your Character",
+            "admin_email": "some@address.thing",
+            "game_server": "Ultros",
+            "site_name": "Ultros Market Database"
+        }
     },
     "database": {
         "postgres": {
@@ -28,6 +30,12 @@
             "password": "password",
             "connections_min": 1,
             "connections_max": 4
+        }
+    },
+    "cookies": {
+        "authentication": {
+            "longevity_days": 28,
+            "identifier": "auth"
         }
     },
     "graphing": {
