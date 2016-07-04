@@ -44,10 +44,10 @@ import ffxiv_market.handlers.users
 APPLICATION = tornado.web.Application(
     [
         (r"/static/(.*)", tornado.web.StaticFileHandler, {
-            'path': CONFIG['server']['static_path'],
+            'path': CONFIG['server']['tornado']['static_path'],
         }),
         (r"/(favicon\.ico)", tornado.web.StaticFileHandler, {
-            'path': CONFIG['server']['static_path'],
+            'path': CONFIG['server']['tornado']['static_path'],
         }),
         
         (r"/", tornado.web.RedirectHandler, {
@@ -81,11 +81,14 @@ APPLICATION = tornado.web.Application(
         (r"/flags", ffxiv_market.handlers.flags.FlagsHandler),
         (r"/flags/ajax-resolve", ffxiv_market.handlers.flags.AjaxResolveHandler),
     ],
-    cookie_secret=CONFIG['server']['hmac'],
+    cookie_secret=CONFIG['server']['tornado']['hmac'],
     login_url=r'/login',
     debug=True,
 )
 
 if __name__ == "__main__":
-    APPLICATION.listen(CONFIG['server']['port'], address=CONFIG['server']['address'])
+    APPLICATION.listen(
+        CONFIG['server']['tornado']['port'],
+        address=CONFIG['server']['tornado']['address'],
+    )
     tornado.ioloop.IOLoop.instance().start()

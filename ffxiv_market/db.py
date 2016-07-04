@@ -205,12 +205,12 @@ class _Database(object):
     def __init__(self):
         self._related_lock = threading.Lock()
         self._pool = _Pool(
-            minconn=CONFIG['database']['postgres']['connections_min'],
-            maxconn=CONFIG['database']['postgres']['connections_max'],
-            host=CONFIG['database']['postgres']['host'],
-            database=CONFIG['database']['postgres']['database'],
-            user=CONFIG['database']['postgres']['username'],
-            password=CONFIG['database']['postgres']['password'],
+            minconn=CONFIG['server']['postgres']['connections_min'],
+            maxconn=CONFIG['server']['postgres']['connections_max'],
+            host=CONFIG['server']['postgres']['host'],
+            database=CONFIG['server']['postgres']['database'],
+            user=CONFIG['server']['postgres']['username'],
+            password=CONFIG['server']['postgres']['password'],
         )
         _logger.info("Initialising cache...")
         self._cache = _Cache(self._get_cache_data())

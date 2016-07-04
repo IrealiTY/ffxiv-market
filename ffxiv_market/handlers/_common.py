@@ -22,16 +22,16 @@ _logger = logging.getLogger('handlers._common')
 
 class _MakoEngine(object):
     def __init__(self):
-        if not os.path.isdir(CONFIG['server']['mako_modules_path']):
-            os.makedirs(CONFIG['server']['mako_modules_path'])
+        if not os.path.isdir(CONFIG['server']['mako']['modules_path']):
+            os.makedirs(CONFIG['server']['mako']['modules_path'])
         self._lookup = mako.lookup.TemplateLookup(
-            directories=[CONFIG['server']['mako_templates_path']],
-            module_directory=CONFIG['server']['mako_modules_path'],
+            directories=[CONFIG['server']['mako']['templates_path']],
+            module_directory=CONFIG['server']['mako']['modules_path'],
         )
         
     def render_page(self, template, **kwargs):
         template = self._lookup.get_template(template)
-        return template.render(DATABASE=DATABASE, **kwargs)
+        return template.render(CONFIG=CONFIG, DATABASE=DATABASE, **kwargs)
 _MAKO_ENGINE = _MakoEngine()
 
 _BAN_LOCK = threading.Lock()
@@ -61,7 +61,7 @@ def restrict_administrator(context):
         
 class Handler(tornado.web.RequestHandler):
     def get_current_user(self):
-        user_id = self.get_secure_cookie(CONFIG['cookie']['auth_identifier'])
+        user_id = self.get_secure_cookie(CONFIG['cookies']['authentication']['identifier'])
         if user_id:
             user_id = int(user_id)
             if not CHECK_BAN(user_id):
@@ -86,12 +86,9 @@ class Handler(tornado.web.RequestHandler):
         
     def _build_common_context(self, page_title=None, header_extra=None):
         identity = self._get_current_user_identity(self.get_current_user())
-        server = CONFIG['server']
-        
         moderator = identity['status'] in (USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,)
         
         return {
-            'CONFIG': CONFIG,
             'page': {
                 'title': page_title,
                 'time_current': int(time.time()),
@@ -112,8 +109,8 @@ class Handler(tornado.web.RequestHandler):
     def _refresh_auth_cookie(self, context):
         if context['identity']['user_id'] is not None:
             self.set_secure_cookie(
-                CONFIG['cookie']['auth_identifier'], str(context['identity']['user_id']),
-                expires_days=CONFIG['cookie']['longevity_days']
+                CONFIG['cookies']['authentication']['identifier'], str(context['identity']['user_id']),
+                expires_days=CONFIG['cookies']['authentication']['longevity_days']
             )
             
     def _common_setup(self, page_title=None, header_extra=None, restrict=None):

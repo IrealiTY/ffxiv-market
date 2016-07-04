@@ -15,14 +15,6 @@
             "templates_path": "/srv/ffxiv-market/mako_templates",
             "modules_path": "/tmp/ffxiv-market/mako_modules"
         },
-        "meta": {
-            "admin_name": "Your Character",
-            "admin_email": "some@address.thing",
-            "game_server": "Ultros",
-            "site_name": "Ultros Market Database"
-        }
-    },
-    "database": {
         "postgres": {
             "host": "127.0.0.1",
             "database": "ffxiv_market",
@@ -39,11 +31,13 @@
         }
     },
     "graphing": {
-        "timescale_seconds": 14400,
+        "days": 28,
         "data_points": 168
     },
-    "prices": {
-        "delete_lockout_seconds": 86400
+    "data": {
+        "prices": {
+            "delete_window": 86400
+        }
     },
     "lists": {
         "item_watch": {
@@ -71,5 +65,11 @@
             "limit": 50,
             "max_age": 604800
         }
+    },
+    "meta": {
+        "admin_name": "Your Character",
+        "admin_email": "some@address.thing",
+        "game_server": "Ultros",
+        "site_name": "Ultros Market Database"
     }
 }

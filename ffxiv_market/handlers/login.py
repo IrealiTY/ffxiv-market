@@ -56,8 +56,8 @@ class LoginHandler(Handler):
                 raise tornado.web.HTTPError(403, reason="Account is banned")
                 
             self.set_secure_cookie(
-                CONFIG['cookie']['auth_identifier'], str(user_id),
-                expires_days=CONFIG['cookie']['longevity_days'],
+                CONFIG['cookies']['authentication']['identifier'], str(user_id),
+                expires_days=CONFIG['cookies']['authentication']['longevity_days'],
             )
             self.redirect(self.get_argument("next", default="/"))
             return
@@ -66,7 +66,7 @@ class LoginHandler(Handler):
         
 class LogoutHandler(Handler):
     def get(self):
-        self.clear_cookie(CONFIG['cookie']['auth_identifier'])
+        self.clear_cookie(CONFIG['cookies']['authentication']['identifier'])
         self.redirect('/login')
         
 class RegisterHandler(Handler):

@@ -115,8 +115,8 @@ class ItemHandler(Handler):
         return DATABASE.items_get_latest_by_name(nq_name)
         
     def _normalise_data(self, price_data, current_time):
-        timescale = CONFIG['graphing']['timescale_seconds']
         data_points = CONFIG['graphing']['data_points']
+        timescale = int(CONFIG['graphing']['days'] / float(data_points))
         
         ages = collections.defaultdict(list)
         for price in price_data:
@@ -128,7 +128,7 @@ class ItemHandler(Handler):
         prices = []
         for (age, pricing) in sorted(ages.items()):
             prices.append((age, int((max(pricing) + min(pricing)) / 2)))
-        return prices
+        return (prices, timescale_seconds)
         
     def _compute_maxmin(self, price_data, current_time):
         low_24h = low_week = low_month = None
@@ -172,9 +172,8 @@ class ItemHandler(Handler):
             high_24h, high_week, high_month,
         )
         
-    def _compute_timeblock_averages(self, normalised_data):
-        seconds_per_day = 3600 * 24
-        slices_per_day = seconds_per_day / CONFIG['graphing']['timescale_seconds']
+    def _compute_timeblock_averages(self, normalised_data, timescale_seconds):
+        slices_per_day = int((3600.0 * 24) / timescale_seconds)
         
         days = collections.defaultdict(list)
         for datum in normalised_data:
@@ -242,13 +241,13 @@ class ItemHandler(Handler):
         average_month = average_week = average_24h = None
         trend_weekly = trend_daily = trend_current = None
         
-        normalised_data = self._normalise_data(price_data, context['page']['time_current'])
+        (normalised_data, normalised_timescale) = self._normalise_data(price_data, context['page']['time_current'])
         if normalised_data:
             (   low_24h, low_week, low_month,
                 high_24h, high_week, high_month,
             ) = self._compute_maxmin(price_data, context['page']['time_current'])
             
-            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data)
+            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data, normalised_timescale)
             (average_24h, average_week, average_month) = self._compute_averages(timeblock_days, timeblock_weeks)
             (trend_current, trend_daily, trend_weekly) = self._compute_trends(normalised_data, timeblock_days, timeblock_weeks)
             
@@ -302,7 +301,7 @@ class ItemHandler(Handler):
             'watching': DATABASE.watchlist_is_watching(context['identity']['user_id'], item_id),
         })
         if not context['role']['moderator']:
-            context['delete_lockout_time'] = context['page']['time_current'] - CONFIG['prices']['delete_lockout_seconds']
+            context['delete_lockout_time'] = context['page']['time_current'] - CONFIG['data']['prices']['delete_window']
         self._render('item.html', context)
         
 class PriceUpdateHandler(Handler):
@@ -347,7 +346,7 @@ class PriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['prices']['delete_lockout_seconds']:
+            if context['page']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
             else:
                 DATABASE.items_delete_price(item_id, timestamp, context['identity']['user_id'])
@@ -408,7 +407,7 @@ class AjaxPriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['prices']['delete_lockout_seconds']:
+            if context['page']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
                 deleted = False
             else:

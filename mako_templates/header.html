@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="utf-8">
-        <title>${CONFIG['server']['meta']['site_name']} - ${page['title']}</title>
+        <meta charset="utf-8"/>
+        <title>${CONFIG['meta']['site_name']} - ${page['title']}</title>
         <link rel="icon" href="/static/favicon.ico">
         <script src="//code.jquery.com/jquery-2.2.4.min.js"></script>
         <script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
@@ -15,7 +15,7 @@
     </head>
     <body>
         <div>
-            <a href="/">${CONFIG['server']['meta']['site_name']}</a>
+            <a href="/">${CONFIG['meta']['site_name']}</a>
             <div style="float: right;">
                 %if role['active']:
                     Welcome, <a href="/users/${identity['user_id']}">${identity['user_name']}</a>
@@ -23,6 +23,8 @@
                 %if role['moderator']:
                     <a href="/flags">flags (${notifications['flags']})</a>
                     <a href="/users">users</a>
+                %else:
+                    <a href="/users/moderators">moderators</a>
                 %endif
                 %if role['active']:
                     <a href="/logout">logout</a>
