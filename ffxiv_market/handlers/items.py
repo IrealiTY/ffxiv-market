@@ -128,7 +128,7 @@ class ItemHandler(Handler):
         prices = []
         for (age, pricing) in sorted(ages.items()):
             prices.append((age, int((max(pricing) + min(pricing)) / 2)))
-        return (prices, timescale_seconds)
+        return (prices, timescale)
         
     def _compute_maxmin(self, price_data, current_time):
         low_24h = low_week = low_month = None
@@ -172,8 +172,8 @@ class ItemHandler(Handler):
             high_24h, high_week, high_month,
         )
         
-    def _compute_timeblock_averages(self, normalised_data, timescale_seconds):
-        slices_per_day = int((3600.0 * 24) / timescale_seconds)
+    def _compute_timeblock_averages(self, normalised_data, normalised_data_timescale):
+        slices_per_day = int((3600.0 * 24) / normalised_data_timescale)
         
         days = collections.defaultdict(list)
         for datum in normalised_data:
@@ -233,7 +233,7 @@ class ItemHandler(Handler):
             ],
         )
         
-        price_data = DATABASE.items_get_prices(item_id, limit=4096, max_age=(context['page']['time_current'] - _ONE_MONTH))
+        price_data = DATABASE.items_get_prices(item_id, max_age=(context['page']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
         
         #Defaults
         low_month = low_week = low_24h = None
@@ -241,13 +241,13 @@ class ItemHandler(Handler):
         average_month = average_week = average_24h = None
         trend_weekly = trend_daily = trend_current = None
         
-        (normalised_data, normalised_timescale) = self._normalise_data(price_data, context['page']['time_current'])
+        (normalised_data, normalised_data_timescale) = self._normalise_data(price_data, context['page']['time_current'])
         if normalised_data:
             (   low_24h, low_week, low_month,
                 high_24h, high_week, high_month,
             ) = self._compute_maxmin(price_data, context['page']['time_current'])
             
-            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data, normalised_timescale)
+            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data, normalised_data_timescale)
             (average_24h, average_week, average_month) = self._compute_averages(timeblock_days, timeblock_weeks)
             (trend_current, trend_daily, trend_weekly) = self._compute_trends(normalised_data, timeblock_days, timeblock_weeks)
             
@@ -282,7 +282,7 @@ class ItemHandler(Handler):
             'crafts_into': crafts_into,
             'price_data': price_data,
             'normalised_data': new_normalised_data,
-            'normalised_data_timescale': CONFIG['graphing']['timescale_seconds'],
+            'normalised_data_timescale': normalised_data_timescale,
             'average_month': average_month,
             'average_week': average_week,
             'average_24h': average_24h,

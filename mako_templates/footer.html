@@ -4,11 +4,13 @@
             <span>Game server: ${CONFIG['meta']['game_server']}</span><br/>
             <span>All timestamps displayed in your local time</span><br/>
         </div>
-        <div style="font-style: italic; font-size: 0.675em; white-space: nowrap; float: left;">
-            <!--Stick an AdWords thing here-->
-            <br/>
-            This service is built, maintained, and hosted by players like you;
-            please exclude this site from your adblocker, if you run one.
-        </div>
+        %if CONFIG['meta']['show_ad']:
+            <div style="font-style: italic; font-size: 0.675em; white-space: nowrap; float: left;">
+                <%include file="ad-snippet.html"/>
+                <br/>
+                This service is built, maintained, and hosted by players like you;
+                please exclude this site from your adblocker, if you run one.
+            </div>
+        %endif
     </body>
 </html>

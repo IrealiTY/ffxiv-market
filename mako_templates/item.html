@@ -159,7 +159,7 @@
                     },
                     hAxis: {
                         viewWindow: {
-                            min: new Date(${(page['time_current'] - 3600 * 24 * 28) * 1000}),
+                            min: new Date(${(page['time_current'] - 3600 * 24 * CONFIG['graphing']['days']) * 1000}),
                             max: new Date(${(page['time_current'] * 1000)})
                         },
                         gridlines: {

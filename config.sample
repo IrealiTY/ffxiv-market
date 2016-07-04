@@ -70,6 +70,7 @@
         "admin_name": "Your Character",
         "admin_email": "some@address.thing",
         "game_server": "Ultros",
-        "site_name": "Ultros Market Database"
+        "site_name": "Ultros Market Database",
+        "show_ad": false
     }
 }
