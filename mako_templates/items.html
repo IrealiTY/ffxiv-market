@@ -2,38 +2,104 @@
 
 <%namespace file="formatting.mako" import="render_item_list"/>
 
-<div style="float: left; padding-right: 15px;">
-    <div>
-        <span style="font-size: 1.5em;">Watched items (${watch_count}/${watch_limit})</span><br/>
-        ${render_item_list(watch_list, 'wat')}
-    </div>
-    <div>
-        <span style="font-size: 1.5em;">Crystals</span><br/>
-        ${render_item_list(crystals_list, 'cry')}
-    </div>
-    <div>
-        <span style="font-size: 1.5em;">Most-watched items</span><br/>
-        ${render_item_list(most_watched_list, 'mwt')}
-    </div>
-</div>
-<div style="float: left;">
-    <div style="float: left; padding-right: 15px;">
-        <span style="font-size: 1.5em;">Items with no stock</span><br/>
-        ${render_item_list(unavailable_list, 'act')}
-    </div>
-    <div style="float: left;">
-        <span style="font-size: 1.5em;">Stale data (1-7 days)</span><br/>
-        ${render_item_list(stale_list, 'sta')}
-    </div>
-    <div style="clear: both;"></div>
-    <div style="float: left; padding-right: 15px;">
-        <span style="font-size: 1.5em;">Most valuable (250-7500)</span><br/>
-        ${render_item_list(valuable_list, 'val')}
-    </div>
-    <div style="float: left;">
-        <span style="font-size: 1.5em;">Recently updated</span><br/>
-        ${render_item_list(updated_list, 'rec')}
-    </div>
-</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-3 watched-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Watched Items</h4>
+                    <h6 class="card-subtitle text-muted">(${watch_count}/${watch_limit})</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(watch_list, 'wat')}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 crystal-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Crystals</h4>
+                    <h6 class="card-subtitle text-muted">Shiny Shiny!</h6>
+                </div>
+            <img class="card-img-top" src="/static/marketboard_crystals.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(crystals_list, 'cry')}</p>
+                </div>
+            </div>
+        </div>
 
+        <div class="col-lg-3 most-watched-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Most-watched items</h4>
+                    <h6 class="card-subtitle text-muted">Your must have list!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(most_watched_list, 'mwt')}</p>
+                </div>
+            </div>
+        </div>
+
+
+    <div class="row">
+
+        <div class="col-lg-3 nostock-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Items with no stock</h4>
+                    <h6 class="card-subtitle text-muted">Out of order!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(unavailable_list, 'act')}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 stale-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Stale data</h4>
+                    <h6 class="card-subtitle text-muted">(Past 1 - 7days)</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(stale_list, 'sta')}</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 valuable-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Most valuable</h4>
+                    <h6 class="card-subtitle text-muted">(250-7500)</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(valuable_list, 'val')}</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 updated-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Recently updated</h4>
+                    <h6 class="card-subtitle text-muted">Fresh Data!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(updated_list, 'rec')}</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
 <%include file="footer.html"/>
