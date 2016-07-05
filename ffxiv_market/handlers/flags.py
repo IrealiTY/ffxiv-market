@@ -19,14 +19,13 @@ class FlagsHandler(Handler):
     def get(self):
         context = self._common_setup(
             page_title="Flags",
-            header_extra = [
-                '<script src="/static/ajax.js"></script>',
-            ],
             restrict=restrict_moderator,
         )
         
         context['flags'] = DATABASE.flags_list()
-        self._render('flags.html', context)
+        self._render('flags.html', context, html_headers=(
+            '<script src="/static/ajax.js"></script>',
+        ))
         
 class AjaxResolveHandler(Handler):
     @tornado.web.authenticated

@@ -14,8 +14,6 @@ from _common import (
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
 )
 
-import ffxiv_market.gamerescape as gamerescape
-
 _ONE_MINUTE = 60
 _ONE_HOUR = _ONE_MINUTE * 60
 _ONE_DAY = _ONE_HOUR * 24
@@ -35,52 +33,19 @@ _CRYSTAL_LIST = (
 
 _logger = logging.getLogger('handlers.items')
 
-def _normalise_item_name(item_name, include_hq=True):
-    item_tokens = item_name.strip().lower().split()
-    
-    hq = False
-    if item_tokens[-1] == 'hq':
-        hq = True
-        item_tokens.pop()
-        
-    item_name = []
-    for i in item_tokens:
-        if _RE_ROMAN_NUMERALS.match(i):
-            item_name.append(i.upper())
-        else:
-            item_name.append(i.title())
-            
-    if hq and include_hq:
-        item_name.append('HQ')
-        
-    return ' '.join(item_name)
-
-def _get_nq_name(item_name):
-    if item_name.endswith(' HQ'):
-        return item_name[:-3]
-    return item_name
-
 class ItemsHandler(Handler):
     @tornado.web.authenticated
     def get(self):
         context = self._common_setup(page_title="Items")
-        
-        context['rendering']['header_extra'] = [
-            '<script src="/static/ajax.js"></script>',
-        ]
         context.update({
             'crystal_list': _CRYSTAL_LIST,
         })
-        self._render('items.html', context)
+        
+        self._render('items.html', context, html_headers=(
+            '<script src="/static/ajax.js"></script>',
+        ))
 
 class ItemHandler(Handler):
-    def _get_quality_counterpart(self, item_name):
-        #Determine if there's an HQ/NQ counterpart
-        nq_name = _get_nq_name(item_name)
-        if nq_name == item_name:
-            return DATABASE.items_get_latest_by_name(item_name + ' HQ')
-        return DATABASE.items_get_latest_by_name(nq_name)
-        
     def _normalise_data(self, price_data, current_time):
         data_points = CONFIG['graphing']['data_points']
         timescale = int(_ONE_DAY * CONFIG['graphing']['days'] / float(data_points))
@@ -183,21 +148,22 @@ class ItemHandler(Handler):
     @tornado.web.authenticated
     def get(self, item_id):
         item_id = int(item_id)
-        item_name = DATABASE.items_id_to_name(item_id)
-        if item_name is None:
+        item_properties = DATABASE.items_get_properties(item_id)
+        if item_properties is None:
             raise tornado.web.HTTPError(42, reason='"{item_id}" is not a known item; submit a price to create it'.format(
                 item_id=item_id,
             ))
+        (item_name, xivdb_id, lodestone_id, hq) = item_properties
+        
+        quality_counterpart = None
+        quality_counterpart_id = DATABASE.items_get_hq_variant_id(xivdb_id, not hq)
+        if quality_counterpart_id is not None:
+            quality_counterpart = DATABASE.items_get_latest_by_id(quality_counterpart_id)
             
-        quality_counterpart = self._get_quality_counterpart(item_name)
         (crafted_from, crafts_into) = DATABASE.related_get(item_id)
         
         context = self._common_setup(
             page_title=item_name,
-            header_extra=[
-                '<script src="/static/ajax.js"></script>',
-                '<script src="https://www.gstatic.com/charts/loader.js"></script>',
-            ],
         )
         
         price_data = DATABASE.items_get_prices(item_id, max_age=(context['rendering']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
@@ -243,7 +209,8 @@ class ItemHandler(Handler):
         context.update({
             'item_name': item_name,
             'item_id': item_id,
-            'item_db_url': gamerescape.build_url(item_name),
+            'xivdb_id': xivdb_id,
+            'lodestone_id': lodestone_id,
             'quality_counterpart': quality_counterpart,
             'crafted_from': crafted_from,
             'crafts_into': crafts_into,
@@ -269,13 +236,15 @@ class ItemHandler(Handler):
         })
         if not context['role']['moderator']:
             context['delete_lockout_time'] = context['rendering']['time_current'] - CONFIG['data']['prices']['delete_window']
-        self._render('item.html', context)
-        
+        self._render('item.html', context, html_headers=(
+                '<script src="/static/ajax.js"></script>',
+                '<script src="https://www.gstatic.com/charts/loader.js"></script>',
+            ))
+            
 class PriceUpdateHandler(Handler):
     @tornado.web.authenticated
     def post(self):
-        item_id = self.get_argument("item_id", default=None)
-        
+        item_id = int(self.get_argument("item_id"))
         value = self.get_argument("value", default=None)
         if value:
             try:
@@ -286,14 +255,6 @@ class PriceUpdateHandler(Handler):
                 ))
         else:
             value = None
-            
-        if item_id is None:
-            name = _normalise_item_name(self.get_argument("name"))
-            item_id = DATABASE.items_name_to_id(name)
-            if item_id is None:
-                item_id = DATABASE.items_create_item(name)
-        else:
-            item_id = int(item_id)
             
         context = self._build_common_context()
         if value is not None:
@@ -318,37 +279,6 @@ class PriceDeleteHandler(Handler):
             else:
                 DATABASE.items_delete_price(item_id, timestamp, context['identity']['user_id'])
                 
-        self.redirect("/items/{item_id}".format(
-            item_id=item_id,
-        ))
-        
-class RelatedItemsUpdateHandler(Handler):
-    def _get_item_ids(self, items):
-        for item in items:
-            item_id = DATABASE.items_name_to_id(item)
-            if item_id:
-                yield item_id
-            item_id = DATABASE.items_name_to_id(item + ' HQ')
-            if item_id:
-                yield item_id
-                
-    @tornado.web.authenticated
-    def post(self):
-        item_id = int(self.get_argument("item_id"))
-        item_name = DATABASE.items_id_to_name(item_id)
-        if item_name is None:
-            raise tornado.web.HTTPError(422, reason='"{item_id}" is not a known item; submit a price to create it'.format(
-                item_id=item_id,
-            ))
-        
-        context = self._build_common_context()
-        restrict_moderator(context)
-        
-        (crafted_from, crafts_into) = gamerescape.parse_related(_get_nq_name(item_name))
-        DATABASE.related_set(item_id,
-            self._get_item_ids(crafted_from),
-            self._get_item_ids(crafts_into),
-        )
         self.redirect("/items/{item_id}".format(
             item_id=item_id,
         ))
@@ -409,8 +339,15 @@ class AjaxQueryNames(Handler):
     @tornado.web.authenticated
     def get(self):
         item_name = self.get_argument("term")
-        self.write(json.dumps([
-            {'label': item_ref.item_state.name, 'value': item_ref.item_state.id,}
-            for item_ref in DATABASE.items_get_names(filter=item_name)
-        ]))
+        limit = CONFIG['lists']['search']['limit']
+        
+        options = []
+        for (name, id, hq) in DATABASE.items_get_names(filter=item_name, limit=limit):
+            if hq:
+                name = '{name} HQ'.format(name=name)
+            options.append({
+                'label': name,
+                'value': id,
+            })
+        self.write(json.dumps(options))
         

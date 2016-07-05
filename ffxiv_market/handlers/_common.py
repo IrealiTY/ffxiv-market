@@ -84,7 +84,7 @@ class Handler(tornado.web.RequestHandler):
             'anonymous': identity[2],
         }
         
-    def _build_common_context(self, page_title=None, header_extra=None):
+    def _build_common_context(self, page_title=None):
         identity = self._get_current_user_identity(self.get_current_user())
         moderator = identity['status'] in (USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,)
         
@@ -112,10 +112,9 @@ class Handler(tornado.web.RequestHandler):
                 expires_days=CONFIG['cookies']['authentication']['longevity_days']
             )
             
-    def _common_setup(self, page_title=None, header_extra=None, restrict=None):
+    def _common_setup(self, page_title=None, restrict=None):
         context = self._build_common_context(
             page_title=page_title,
-            header_extra=header_extra,
         )
         
         self._refresh_auth_cookie(context)
