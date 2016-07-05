@@ -64,6 +64,9 @@
         "recently_updated": {
             "limit": 50,
             "max_age": 604800
+        },
+        "search": {
+            "limit": 50,
         }
     },
     "meta": {

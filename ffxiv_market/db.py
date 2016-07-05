@@ -19,89 +19,12 @@ _THREE_HOURS = 3600 * 3
 _TWELVE_HOURS = _THREE_HOURS * 4
 
 ItemPrice = collections.namedtuple('Price', ['timestamp', 'value', 'reporter', 'flagged'])
-ItemState = collections.namedtuple('ItemState', ['name', 'id', 'price'])
+ItemState = collections.namedtuple('ItemState', ['name', 'id', 'hq', 'price'])
 ItemRef = collections.namedtuple('ItemRef', ['item_state', 'average'])
 UserRef = collections.namedtuple('UserRef', ['name', 'id', 'anonymous'])
 Flag = collections.namedtuple('Flag', ['item', 'user'])
 
 _logger = logging.getLogger('db')
-
-#Schema
-"""
-CREATE TABLE items(
-    id INTEGER PRIMARY KEY,
-    can_be_hq BOOLEAN DEFAULT false,
-    name TEXT UNIQUE NOT NULL,
-    lodestone_id TEXT UNIQUE NOT NULL
-);
-
-CREATE TABLE users(
-    id SERIAL NOT NULL PRIMARY KEY,
-    registered_ts TIMESTAMP DEFAULT DATE_TRUNC('second', NOW() AT TIME ZONE 'utc'),
-    last_seen_ts TIMESTAMP DEFAULT NULL,
-    anonymous BOOLEAN DEFAULT true NOT NULL,
-    status SMALLINT DEFAULT 0 NOT NULL,
-    password_hash_candidate_ts TIMESTAMP DEFAULT NULL,
-    name TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    password_salt TEXT NOT NULL,
-    password_hash_candidate TEXT DEFAULT NULL
-);
-
-CREATE TABLE user_interactions(
-    subject INTEGER NOT NULL REFERENCES users(id),
-    actor INTEGER NOT NULL REFERENCES users(id),
-    ts TIMESTAMP DEFAULT DATE_TRUNC('second', NOW() AT TIME ZONE 'utc') NOT NULL,
-    action TEXT NOT NULL,
-    comment TEXT NOT NULL
-);
-
-CREATE TABLE prices(
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    hq BOOLEAN NOT NULL,
-    ts TIMESTAMP DEFAULT DATE_TRUNC('second', NOW() AT TIME ZONE 'utc') NOT NULL,
-    value INTEGER NOT NULL,
-    submitting_user INTEGER NOT NULL REFERENCES users(id),
-    PRIMARY KEY (item_id, ts)
-);
-
-CREATE TABLE flags(
-    price_item_id INTEGER NOT NULL,
-    price_hq BOOLEAN NOT NULL,
-    price_ts TIMESTAMP NOT NULL,
-    reported_by INTEGER NOT NULL REFERENCES users(id),
-    PRIMARY KEY (price_item_id, price_hq, price_ts),
-    FOREIGN KEY (price_item_id, price_hq, price_ts) REFERENCES prices(item_id, hq, ts) ON DELETE CASCADE
-);
-
-CREATE TABLE flags_history(
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    price_hq BOOLEAN NOT NULL,
-    price_ts TIMESTAMP NOT NULL,
-    submitting_user INTEGER NOT NULL REFERENCES users(id),
-    reported_by INTEGER NOT NULL REFERENCES users(id),
-    deleted BOOLEAN NOT NULL
-);
-
-CREATE TABLE watchlist(
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    hq BOOLEAN NOT NULL,
-    PRIMARY KEY (user_id, item_id)
-);
-
-CREATE TABLE related_crafted_from(
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    related_item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    PRIMARY KEY (item_id, related_item_id)
-);
-
-CREATE TABLE related_crafts_into(
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    related_item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    PRIMARY KEY (item_id, related_item_id)
-);
-"""
 
 _EPOCH = datetime.datetime.utcfromtimestamp(0)
 def _datetime_to_epoch(timestamp):
@@ -111,6 +34,29 @@ def _datetime_to_epoch(timestamp):
     
 _epoch_to_datetime = datetime.datetime.utcfromtimestamp
 
+class WriteWaitLock(object):
+    def __init__(self):
+        self._reader_lock = threading.Condition(threading.Lock())
+        self._readers = 0
+
+    def read_start(self):
+        with self._reader_lock:
+            self._readers += 1
+            
+    def read_stop(self):
+        with self._reader_lock:
+            self._readers -= 1
+            if not self._readers:
+                self._reader_lock.notify_all()
+                
+    def write_start(self):
+        self._reader_lock.acquire()
+        while self._readers:
+            self._read_ready.wait()
+            
+    def write_stop(self):
+        self._reader_lock.release()
+        
 class _Cache(object):
     """
     This should be replaced by a Materialized View when Postgres >= 9.3 is
@@ -118,17 +64,11 @@ class _Cache(object):
     """
     _lock = None
     _item_refs = None
-    _item_refs_hq = None
-    _item_refs_by_name = None
     
     def __init__(self, item_data):
-        self._lock = threading.Lock()
+        self._lock = WriteWaitLock()
+        
         self._item_refs = list(item_data)
-        self._item_refs.sort(key=(lambda i: i.item_state.id))
-        self._item_refs_by_name = dict((i.item_state.name.lower(), i) for i in self._item_refs)
-        self._item_refs_hq = list(item_data_hq)
-        self._item_refs_hq.sort(key=(lambda i: i.item_state.id))
-        self._item_refs_by_name.update(dict((i.item_state.name.lower(), i) for i in self._item_refs_hq))
         
     def _find_index(self, item_id):
         low = 0
@@ -145,40 +85,45 @@ class _Cache(object):
         return None
         
     def update(self, item_ref):
-        with self._lock:
-            record_index = self._find_index(item_ref.item_state.id)
-            if record_index is None:
-                self._item_refs_by_name[item_ref.item_state.name.lower()] = item_ref
-                self._item_refs.append(item_ref)
-                self._item_refs.sort(key=(lambda i: i.item_state.id))
-            elif self._item_refs[record_index].item_state.price.timestamp < item_ref.item_state.price.timestamp:
-                self._item_refs_by_name[self._item_refs[record_index].item_state.name.lower()] = item_ref
-                self._item_refs[record_index] = item_ref
-                
+        self._lock.write_start()
+        try:
+            self._item_refs[self._find_index(item_ref.item_state.id)] = item_ref
+        finally:
+            self._lock.write_stop()
+            
     def delete(self, item_id, timestamp):
-        with self._lock:
+        self._lock.write_start()
+        try:
             record_index = self._find_index(item_id)
-            if record_index is not None:
-                if self._item_refs[record_index].item_state.price.timestamp == timestamp:
-                    self._item_refs_by_name.pop(self._item_refs.pop(record_index).item_state.name)
-                    return True
+            if self._item_refs[record_index].item_state.price and self._item_refs[record_index].item_state.price.timestamp == timestamp:
+                item_ref = self._item_refs[record_index]
+                self._item_refs[record_index] = ItemRef(
+                    ItemState(
+                        item_ref.item_state.name, item_ref.item_state.id, item_ref.item_state.hq, None,
+                    ),
+                    None,
+                )
+                return True
+        finally:
+            self._lock.write_stop()
         return False
         
-    def get_items_by_substring(self, substring):
-        substring = substring.lower()
-        with self._lock:
-            return [item_ref for (name, item_ref) in self._item_refs_by_name.iteritems() if substring in name]
-            
-    def get_item_by_id(self, item_id, hq):
-        with self._lock:
+    def get_item_by_id(self, item_id):
+        self._lock.read_start()
+        try:
             record_index = self._find_index(item_id)
             if record_index is None:
                 return None
             return self._item_refs[record_index]
+        finally:
+            self._lock.read_stop()
             
     def query(self, query_func):
-        with self._lock:
+        self._lock.read_start()
+        try:
             return query_func(self._item_refs)
+        finally:
+            self._lock.read_stop()
             
 class _Cursor(object):
     _pool = None
@@ -234,18 +179,15 @@ class _Database(object):
                 
     def _get_cache_data(self):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.can_be_hq, prices.ts, prices.value, items.name
-                FROM items, prices
+            cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.hq, prices.ts, prices.value, base_items.name
+                FROM items, prices, base_items
                 WHERE prices.item_id = items.id
+                  AND base_items.id = items.base_item_id
                 ORDER BY items.id ASC, prices.ts DESC""")
-            for (item_id, can_be_hq, ts, value, item_name) in self._iterate_results(cursor, buffer_size=512):
-                hq_variant = None
-                if can_be_hq:
-                    hq_variant = 
-                
+            for (item_id, hq, ts, value, item_name) in self._iterate_results(cursor, buffer_size=512):
                 yield ItemRef(
                     ItemState(
-                        item_name, item_id, ItemPrice(
+                        item_name, item_id, hq, ItemPrice(
                             _datetime_to_epoch(ts), value, None, False
                         ),
                     ),
@@ -517,76 +459,82 @@ class _Database(object):
                 'comment': comment,
             })
             
-    def items_search(self, filter=''):
-        return self._cache.get_items_by_substring(filter)
-        
-    def items_id_to_name(self, item_id):
-        item_ref = self._cache.get_item_by_id(item_id)
-        return item_ref and item_ref.item_state.name
-        
+    def items_search(self, filter, limit):
+        with self._pool.get_cursor() as cursor:
+            cursor.execute("""SELECT base_items.name, items.id, items.hq
+                FROM items, base_items
+                WHERE LOWER(base_items.name) LIKE '%%%(filter)s%%'
+                  AND base_items.id = items.base_item_id
+                ORDER BY base_items.name ASC, items.hq ASC
+                LIMIT %(limit)s""", {
+                'filter': filter,
+                'limit': limit,
+            })
+            return list(self._iterate_results(cursor))
+            
+    def items_get_properties(self, item_id):
+        with self._pool.get_cursor() as cursor:
+            cursor.execute("""SELECT base_items.name, base_items.id, base_items.lodestone_id, items.hq
+                FROM items, base_items
+                WHERE items.id = %(item_id)s
+                  AND base_items.id = items.base_item_id
+                LIMIT 1""", {
+                'item_id': item_id,
+            })
+            return cursor.fetchone()
+            
+    def items_get_hq_variant_id(self, xivdb_item_id, hq):
+        with self._pool.get_cursor() as cursor:
+            cursor.execute("""SELECT items.id
+                FROM items
+                WHERE items.base_item_id = %(xivdb_item_id)s
+                  AND items.hq = %(hq)s
+                LIMIT 1""", {
+                'xivdb_item_id': xivdb_item_id,
+                'hq': hq,
+            })
+            return cursor.fetchone()
+            
     def items_get_latest_by_id(self, item_id):
         return self._cache.get_item_by_id(item_id)
         
     def _query__items_get_recently_updated(self, limit, max_age, items):
-        candidates = [i for i in items if i.item_state.price.timestamp > max_age]
+        candidates = [i for i in items if i.item_state.price and i.item_state.price.timestamp > max_age]
         return sorted(candidates, key=(lambda i: i.item_state.price.timestamp), reverse=True)[:limit]
     def items_get_recently_updated(self, limit, max_age):
         return self._cache.query(lambda items: self._query__items_get_recently_updated(limit, max_age, items))
         
     def _query__items_get_most_valuable(self, limit, max_age, min_value, max_value, items):
-        candidates = [i for i in items if i.item_state.price.timestamp > max_age and min_value <= i.item_state.price.value <= max_value]
+        candidates = [i for i in items if i.item_state.price and i.item_state.price.timestamp > max_age and min_value <= i.item_state.price.value <= max_value]
         return sorted(candidates, key=(lambda i: i.item_state.price.value), reverse=True)[:limit]
     def items_get_most_valuable(self, limit, max_age, min_value, max_value):
         return self._cache.query(lambda items: self._query__items_get_most_valuable(limit, max_age, min_value, max_value, items))
         
     def _query__items_get_no_supply(self, limit, max_age, items):
-        candidates = [i for i in items if i.item_state.price.timestamp > max_age and i.item_state.price.value == 0]
+        candidates = [i for i in items if i.item_state.price and i.item_state.price.timestamp > max_age and i.item_state.price.value == 0]
         return sorted(candidates, key=(lambda i: i.item_state.price.timestamp), reverse=True)[:limit]
     def items_get_no_supply(self, limit, max_age):
         return self._cache.query(lambda items: self._query__items_get_no_supply(limit, max_age, items))
         
     def _query__items_get_stale(self, limit, min_age, max_age, items):
-        candidates = [i for i in items if max_age < i.item_state.price.timestamp < min_age]
+        candidates = [i for i in items if i.item_state.price and max_age < i.item_state.price.timestamp < min_age]
         return sorted(candidates, key=(lambda i: i.item_state.price.timestamp))[:limit]
     def items_get_stale(self, limit, min_age, max_age):
         return self._cache.query(lambda items: self._query__items_get_stale(limit, min_age, max_age, items))
         
-    def items_create_item(self, item_name):
-        _logger.info("Creating item {name}...".format(
-            name=item_name,
-        ))
-        with self._pool.get_cursor() as cursor:
-            try:
-                cursor.execute("""INSERT
-                    INTO items(name)
-                    VALUES(%(item_name)s)
-                    RETURNING id""", {
-                    'item_name': item_name,
-                })
-                return cursor.fetchone()[0]
-            except Exception: #Item already exists: extremely unlikely race-condition
-                cursor.execute("""SELECT items.id
-                    FROM items
-                    WHERE items.name = %(item_name)s""", {
-                    'item_name': item_name,
-                })
-                return cursor.fetchone()[0]
-                
     def _items_compute_average(self, item_id):
         #Computes the average price from -12h to -36h
-        
         current_time = int(time.time())
         end_time = current_time - _TWELVE_HOURS
         start_time = end_time - _TWELVE_HOURS
         timeslices = collections.defaultdict(list)
         
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT ts, value
+            cursor.execute("""SELECT prices.ts, prices.value
                 FROM prices
-                WHERE item_id = %(item_id)s
-                  AND ts < %(end_ts)s
-                  AND ts > %(start_ts)s
-                LIMIT 128""", {
+                WHERE prices.item_id = %(item_id)s
+                  AND prices.ts < %(end_ts)s
+                  AND prices.ts > %(start_ts)s""", {
                 'item_id': item_id,
                 'end_ts': _epoch_to_datetime(end_time),
                 'start_ts': _epoch_to_datetime(start_time),
@@ -612,30 +560,17 @@ class _Database(object):
             price = ItemPrice(_datetime_to_epoch(cursor.fetchone()[0]), value, None, False)
             
             #Update the cache
-            item_name = self.items_id_to_name(item_id)
-            if item_name is None: #First price: cache doesn't know about it
-                cursor.execute("""SELECT name
-                    FROM items
-                    WHERE items.id = %(item_id)s
-                    LIMIT 1""", {
-                        'item_id': item_id,
-                    })
-                item_name = cursor.fetchone()[0]
             self._cache.update(ItemRef(
-                ItemState(item_name, item_id, price),
+                ItemState(self._cache.get_item_by_id(item_id), item_id, price),
                 self._items_compute_average(item_id),
             ))
             
     def items_delete_price(self, item_id, timestamp, user_id=None):
-        item_name = self.items_id_to_name(item_id)
-        if item_name is None: #Unknown item
-            return
-            
         statement = [
             "DELETE "
             "FROM prices "
             "WHERE prices.item_id = %(item_id)s "
-              "AND prices.ts = %(timestamp)s",
+              "AND prices.ts = %(timestamp)s "
         ]
         if user_id is not None:
             statement.append("AND prices.submitting_user = %(user_id)s")
@@ -657,20 +592,14 @@ class _Database(object):
                     'item_id': item_id,
                 })
                 result = cursor.fetchone()
-                if result is None: #All data is gone
-                    cursor.execute("""DELETE
-                        FROM items
-                        WHERE items.id = %(item_id)s""", {
-                        'item_id': item_id,
-                    })
-                else:
+                if result is not None: #There's still data
                     (timestamp, value) = result
                     self._cache.update(ItemRef(
-                        ItemState(item_name, item_id, ItemPrice(
+                        ItemState(self._cache.get_item_by_id(item_id), item_id, hq, ItemPrice(
                             _datetime_to_epoch(timestamp),
                             value, None, False,
                         )),
-                        self._items_compute_average(item_id),
+                        self._items_compute_average(item_id, hq),
                     ))
                     
     def items_get_prices(self, item_id, limit=None, max_age=None):
@@ -711,27 +640,28 @@ class _Database(object):
             
     def flags_list(self):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT flags.price_item_id, items.name,
+            cursor.execute("""SELECT flags.price_item_id, base_items.name, items.hq,
                     flags.price_ts, prices.value,
                     reporter.id, reporter.name, reporter.anonymous,
                     reportee.id, reportee.name, reportee.anonymous
-                FROM flags, users AS reportee, users as reporter, prices, items
+                FROM flags, users AS reportee, users as reporter, prices, items, base_items
                 WHERE flags.price_item_id = prices.item_id
                   AND flags.price_item_id = items.id
                   AND flags.price_ts = prices.ts
                   AND flags.reported_by = reporter.id
                   AND prices.submitting_user = reportee.id
+                  AND base_items.id = items.base_item_id
                 ORDER BY flags.price_ts ASC""")
             return map(
                 lambda (
-                    item_id, item_name,
+                    item_id, item_name, hq,
                     price_ts, item_value,
                     reporter_id, reporter_name, reporter_anonymous,
                     reportee_id, reportee_name, reportee_anonymous,
                 ): Flag(
                     ItemState(
                         item_name,
-                        item_id,
+                        item_id, hq,
                         ItemPrice(
                             _datetime_to_epoch(price_ts),
                             item_value,
@@ -751,12 +681,17 @@ class _Database(object):
             return cursor.fetchone()[0]
             
     def flags_resolve(self, item_id, timestamp, delete):
+        timestamp = _epoch_to_datetime(timestamp)
+        
         with self._pool.get_cursor() as cursor:
             cursor.execute("""SELECT flags.reported_by, prices.submitting_user
                 FROM flags, prices
-                WHERE flags.price_item_id = prices.item_id
-                  AND flags.price_ts = prices.ts
-                LIMIT 1""")
+                WHERE flags.price_item_id = %(item_id)s
+                  AND flags.price_ts = %(timestamp)s
+                LIMIT 1""", {
+                    'item_id': item_id,
+                    'timestamp': timestamp,
+                })
             (reported_by, submitting_user) = cursor.fetchone()
             
             if delete: #Cascade will clean up the flag
@@ -765,7 +700,7 @@ class _Database(object):
                     WHERE prices.item_id = %(item_id)s
                       AND prices.ts = %(timestamp)s""", {
                     'item_id': item_id,
-                    'timestamp': _epoch_to_datetime(timestamp),
+                    'timestamp': timestamp,
                 })
             else:
                 cursor.execute("""DELETE
@@ -773,14 +708,14 @@ class _Database(object):
                     WHERE flags.price_item_id = %(item_id)s
                       AND flags.price_ts = %(timestamp)s""", {
                     'item_id': item_id,
-                    'timestamp': _epoch_to_datetime(timestamp),
+                    'timestamp': timestamp,
                 })
                 
             cursor.execute("""INSERT
                 INTO flags_history (item_id, price_ts, submitting_user, reported_by, deleted)
                 VALUES (%(item_id)s, %(timestamp)s, %(submitter)s, %(reporter)s, %(deleted)s)""", {
                 'item_id': item_id,
-                'timestamp': _epoch_to_datetime(timestamp),
+                'timestamp': timestamp,
                 'submitter': submitting_user,
                 'reporter': reported_by,
                 'deleted': delete,
@@ -851,33 +786,6 @@ class _Database(object):
             })
             return [self._cache.get_item_by_id(i[1]) for i in self._iterate_results(cursor)]
             
-    def related_set(self, item_id, crafted_from, crafts_into):
-        with self._related_lock:
-            with self._pool.get_cursor() as cursor:
-                cursor.execute("""DELETE
-                    FROM related_crafted_from
-                    WHERE item_id = %(item_id)s""", {
-                    'item_id': item_id,
-                })
-                cursor.executemany("""INSERT
-                    INTO related_crafted_from (item_id, related_item_id)
-                    VALUES (%(item_id)s, %(related_item_id)s)""", ({
-                    'item_id': item_id,
-                    'related_item_id': v,
-                } for v in crafted_from))
-                
-                cursor.execute("""DELETE
-                    FROM related_crafts_into
-                    WHERE item_id = %(item_id)s""", {
-                    'item_id': item_id,
-                })
-                cursor.executemany("""INSERT
-                    INTO related_crafts_into (item_id, related_item_id)
-                    VALUES (%(item_id)s, %(related_item_id)s)""", ({
-                    'item_id': item_id,
-                    'related_item_id': v,
-                } for v in crafts_into))
-                
     def related_get(self, item_id):
         with self._pool.get_cursor() as cursor:
             cursor.execute("""SELECT related_item_id

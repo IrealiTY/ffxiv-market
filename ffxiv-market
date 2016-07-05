@@ -72,7 +72,6 @@ APPLICATION = tornado.web.Application(
         (r"/items/(\d+)", ffxiv_market.handlers.items.ItemHandler),
         (r"/items/price-update", ffxiv_market.handlers.items.PriceUpdateHandler),
         (r"/items/price-delete", ffxiv_market.handlers.items.PriceDeleteHandler),
-        (r"/items/related-items-update", ffxiv_market.handlers.items.RelatedItemsUpdateHandler),
         (r"/items/ajax-price-update", ffxiv_market.handlers.items.AjaxPriceUpdateHandler),
         (r"/items/ajax-price-delete", ffxiv_market.handlers.items.AjaxPriceDeleteHandler),
         (r"/items/ajax-watch", ffxiv_market.handlers.items.AjaxWatchHandler),

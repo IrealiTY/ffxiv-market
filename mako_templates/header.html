@@ -34,7 +34,7 @@
             %if role['active']:
                 <br/>
                 <form action="/items/price-update" method="post" style="display: inline;">
-                    <input type="text" name="name" id="itemselect" required/>
+                    <input type="text" name="item_id" id="itemselect" required/>
                     @
                     <input type="number" name="value" min="0" max="999999999" size="9" autocomplete="off"/>
                     gil

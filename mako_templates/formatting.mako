@@ -62,7 +62,7 @@ if age == 1:
     %if item_refs:
         <ul class="ffxiv-list">
             %for item_ref in item_refs:
-                %if not item_ref:
+                %if not item_ref or not item_ref.item_state.price:
                     <%continue%>
                 %endif
                 <%
