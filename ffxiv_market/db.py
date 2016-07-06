@@ -521,6 +521,9 @@ class _Database(object):
     def items_get_latest_by_id(self, item_id):
         return self._cache.get_item_by_id(item_id)
         
+    def items_query(self, query):
+        return self._cache.query(query)
+        
     def _query__items_get_recently_updated(self, limit, max_age, items):
         candidates = [i for i in items if i.item_state.price and i.item_state.price.timestamp > max_age]
         return sorted(candidates, key=(lambda i: i.item_state.price.timestamp), reverse=True)[:limit]

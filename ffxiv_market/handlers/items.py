@@ -2,7 +2,6 @@
 import collections
 import json
 import logging
-import re
 
 import tornado.web
 
@@ -23,16 +22,17 @@ _ONE_DAY = _ONE_HOUR * 24
 _ONE_WEEK = _ONE_DAY * 7
 _ONE_MONTH = _ONE_WEEK * 4
 
-_RE_ROMAN_NUMERALS = re.compile(r'^[ivxlc]+$')
-
-_CRYSTAL_LIST = (
-    #'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
-    2, 3, 4, 5, 6, 7,
-    #'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
-    8, 9, 10, 11, 12, 13,
-    #'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
-    14, 15, 16, 17, 18, 19,
+_crystal_list = dict(
+    (item.item_state.name.en, item.item_state.id) for item in DATABASE.items_query(
+        lambda items: [i for i in items if i.item_state.name.en.endswith((' Shard', ' Crystal', ' Cluster',))]
+    )
 )
+_CRYSTAL_LIST = tuple(map(_crystal_list.get, (
+    'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
+    'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
+    'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+)))
+del _crystal_list
 
 _logger = logging.getLogger('handlers.items')
 
