@@ -15,7 +15,7 @@
             <select name="language">
                 %for (value, label) in user_language_options.iteritems():
                     <option value="${value}"${user_language == value and 'selected="selected"' or ''}>${label}</option>
-                %endif
+                %endfor
             </select>
             <input type="submit" value="change"/>
         </form>
