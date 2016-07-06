@@ -15,6 +15,8 @@ from ..common import (
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
     USER_STATUS_NAMES,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
 from ..db import DATABASE
 
@@ -75,13 +77,15 @@ class Handler(tornado.web.RequestHandler):
                 'user_id': user_id,
                 'user_name': 'guest',
                 'status': USER_STATUS_GUEST,
+                'language': USER_LANGUAGE_ENGLISH,
                 'anonymous': True,
             }
         return {
             'user_id': user_id,
             'user_name': identity[0],
             'status': identity[1],
-            'anonymous': identity[2],
+            'language': identity[2],
+            'anonymous': identity[3],
         }
         
     def _build_common_context(self, page_title=None):

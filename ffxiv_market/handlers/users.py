@@ -11,6 +11,8 @@ from _common import (
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
     USER_STATUS_NAMES,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
 
 _logger = logging.getLogger('handlers.users')
@@ -117,9 +119,11 @@ class ProfileHandler(Handler):
         context.update({
             'user_id': user_id,
             'user_name': profile[0],
-            'user_anonymous': profile[1],
-            'user_status': USER_STATUS_NAMES[profile[2]],
-            'user_last_seen': profile[3],
+            'user_language': profile[1],
+            'user_language_options': USER_LANGUAGE_NAMES,
+            'user_anonymous': profile[2],
+            'user_status': USER_STATUS_NAMES[profile[3]],
+            'user_last_seen': profile[4],
             'user_prices_submitted': prices_submitted,
         })
         if moderator:
@@ -130,10 +134,10 @@ class ProfileHandler(Handler):
                 'user_unresolved_flags': unresolved_flags,
                 'user_valid_flags_reported': valid_flags_reported,
                 'user_invalid_flags_reported': invalid_flags_reported,
-                'user_set_active': _can_set_active(user_id, profile[2], context['identity']['user_id'], context['role']),
-                'user_set_moderator': _can_set_moderator(user_id, profile[2], context['identity']['user_id'], context['role']),
-                'user_set_banned': _can_set_banned(user_id, profile[2], context['identity']['user_id'], context['role']),
-                'user_candidate_password_timestamp': profile[4],
+                'user_set_active': _can_set_active(user_id, profile[3], context['identity']['user_id'], context['role']),
+                'user_set_moderator': _can_set_moderator(user_id, profile[3], context['identity']['user_id'], context['role']),
+                'user_set_banned': _can_set_banned(user_id, profile[3], context['identity']['user_id'], context['role']),
+                'user_candidate_password_timestamp': profile[5],
             })
         self._render('user.html', context)
         
@@ -194,7 +198,7 @@ class AcceptRecoveryPasswordHandler(Handler):
             user_id=user_id,
         ))
         
-class AnonymityUpdateHandler(Handler):
+class UpdateAnonymityHandler(Handler):
     @tornado.web.authenticated
     def post(self):
         anonymous = self.get_argument("anonymity") == 'hide'
@@ -202,6 +206,18 @@ class AnonymityUpdateHandler(Handler):
         context = self._build_common_context()
         user_id = context['identity']['user_id']
         DATABASE.users_set_anonymous(user_id, anonymous)
+        self.redirect('/users/{user_id}'.format(
+            user_id=user_id,
+        ))
+        
+class UpdateLanguageHandler(Handler):
+    @tornado.web.authenticated
+    def post(self):
+        language = self.get_argument("language")
+        
+        context = self._build_common_context()
+        user_id = context['identity']['user_id']
+        DATABASE.users_set_language(user_id, language)
         self.redirect('/users/{user_id}'.format(
             user_id=user_id,
         ))

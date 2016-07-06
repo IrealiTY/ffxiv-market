@@ -6,8 +6,6 @@ import sys
 import time
 import urllib2
 
-NAME_COLUMN = 'name_en' #Change this to build databases for other languages
-
 if len(sys.argv) >= 2:
     items_filter = [int(i.strip()) for i in open(sys.argv[1])]
     items_filter.sort()
@@ -16,9 +14,7 @@ else:
     items_filter = None
     
 item_list = json.loads(
-    urllib2.urlopen('https://api.xivdb.com/item?columns=id,{name_col},lodestone_id'.format(
-        name_col=NAME_COLUMN,
-    )).read(),
+    urllib2.urlopen('https://api.xivdb.com/item?columns=id,name_en,name_ja,name_fr,name_de,lodestone_id').read(),
 )
 
 item_ids = set()
@@ -67,18 +63,19 @@ for (i, item) in enumerate(sorted(item_list, key=(lambda i: i['id']))):
             if item_details['is_untradable'] or item_details['special_shops_currency'] or (item_details['price_sell'] == 0 and item_details['item_search_category'] != 58):
                 break
             
-            print("INSERT INTO base_items (id, name, lodestone_id) VALUES ({item_id}, $${name}$$, $${lodestone_id}$$);".format(
+            print("INSERT INTO base_items VALUES({item_id},$${name_en}$$,$${name_ja}$$,$${name_fr}$$,$${name_de}$$,$${lodestone_id}$$);".format(
                 item_id=item_id,
-                name=item[NAME_COLUMN],
+                name_en=item['name_en'].encode('utf-8'),
+                name_ja=item['name_ja'].encode('utf-8'),
+                name_fr=item['name_fr'].encode('utf-8'),
+                name_de=item['name_de'].encode('utf-8'),
                 lodestone_id=item['lodestone_id'],
             ))
-            print("INSERT INTO items (base_item_id, hq) VALUES ({item_id}, false);".format(
-                item_id=item_id,
-            ))
+            values = ['({item_id}, false)',]
             if item_details['can_be_hq']:
-                print("INSERT INTO items (base_item_id, hq) VALUES ({item_id}, true);".format(
-                    item_id=item_id,
-                ))
+                values.append('({item_id}, true)')
+            values = ','.join(values).format(item_id=item_id)
+            print("INSERT INTO items(base_item_id, hq) VALUES{values};".format(values=values))
             item_ids.add(item_id)
             
             if item_details['craftable']:
@@ -88,7 +85,7 @@ for (i, item) in enumerate(sorted(item_list, key=(lambda i: i['id']))):
                         
             if item_details['recipes']:
                 for recipe in item_details['recipes']:
-                    crafts_into[item_id].append(recipe['id'])
+                    crafts_into[item_id].append(recipe['item']['id'])
                     
             break
         finally:
@@ -99,17 +96,19 @@ print("DROP RULE items_on_duplicate_ignore ON items;")
 
 print("DELETE FROM related_crafted_from;")
 for (item_id, related) in sorted(crafted_from.iteritems()):
-    for i in sorted(item_ids.intersection(related)):
-        print("INSERT INTO related_crafted_from (item_id, related_item_id) VALUES ({item_id}, {related_id});".format(
+    print("INSERT INTO related_crafted_from VALUES{values};".format(
+        values=','.join('({item_id},{related_id})'.format(
             item_id=item_id,
             related_id=i,
-        ))
-        
+        ) for i in sorted(item_ids.intersection(related))),
+    ))
+    
 print("DELETE FROM related_crafts_into;")
 for (item_id, related) in sorted(crafts_into.items()):
-    for i in sorted(item_ids.intersection(related)):
-        print("INSERT INTO related_crafts_into (item_id, related_item_id) VALUES ({item_id}, {related_id});".format(
+    print("INSERT INTO related_crafts_into VALUES{values};".format(
+        values=','.join('({item_id},{related_id})'.format(
             item_id=item_id,
             related_id=i,
-        ))
-        
+        ) for i in sorted(item_ids.intersection(related))),
+    ))
+    

@@ -20,6 +20,7 @@ _TWELVE_HOURS = _THREE_HOURS * 4
 
 ItemPrice = collections.namedtuple('Price', ['timestamp', 'value', 'reporter', 'flagged'])
 ItemState = collections.namedtuple('ItemState', ['name', 'id', 'hq', 'price'])
+ItemName = collections.namedtuple('ItemName', ['en', 'ja', 'fr', 'de'])
 ItemRef = collections.namedtuple('ItemRef', ['item_state', 'average'])
 UserRef = collections.namedtuple('UserRef', ['name', 'id', 'anonymous'])
 Flag = collections.namedtuple('Flag', ['item', 'user'])
@@ -179,15 +180,16 @@ class _Database(object):
                 
     def _get_cache_data(self):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.hq, prices.ts, prices.value, base_items.name
+            cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.hq, prices.ts, prices.value,
+                     base_items.name_en, base_items.name_ja, base_items.name_fr, base_items.name_de
                 FROM items, prices, base_items
                 WHERE prices.item_id = items.id
                   AND base_items.id = items.base_item_id
                 ORDER BY items.id ASC, prices.ts DESC""")
-            for (item_id, hq, ts, value, item_name) in self._iterate_results(cursor, buffer_size=512):
+            for (item_id, hq, ts, value, name_en, name_ja, name_fr, name_de) in self._iterate_results(cursor, buffer_size=512):
                 yield ItemRef(
                     ItemState(
-                        item_name, item_id, hq, ItemPrice(
+                        ItemName(name_en, name_ja, name_fr, name_de), item_id, hq, ItemPrice(
                             _datetime_to_epoch(ts), value, None, False
                         ),
                     ),
@@ -325,7 +327,7 @@ class _Database(object):
             
     def users_get_profile(self, user_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT users.name, users.anonymous, users.status, users.last_seen_ts, users.password_hash_candidate_ts
+            cursor.execute("""SELECT users.name, users.language, users.anonymous, users.status, users.last_seen_ts, users.password_hash_candidate_ts
                 FROM users
                 WHERE users.id = %(user_id)s
                 LIMIT 1""", {
@@ -398,9 +400,9 @@ class _Database(object):
             })
             invalid_prices_submitted = cursor.fetchone()[0]
             
-            (p_name, p_visible, p_status, p_last_seen_ts, p_password_hash_candidate_ts) = profile
+            (p_name, p_language, p_visible, p_status, p_last_seen_ts, p_password_hash_candidate_ts) = profile
             return (
-                (p_name, p_visible, p_status,
+                (p_name, p_language, p_visible, p_status,
                     _datetime_to_epoch(p_last_seen_ts),
                     _datetime_to_epoch(p_password_hash_candidate_ts),
                 ),
@@ -438,9 +440,23 @@ class _Database(object):
                 'user_id': user_id,
             })
             
+    def users_set_language(self, user_id, language):
+        _logger.info("Changing user {id}'s language={language}...".format(
+            id=user_id,
+            language=language,
+        ))
+        with self._pool.get_cursor() as cursor:
+            cursor.execute("""UPDATE users
+                SET
+                    language = %(language)s
+                WHERE users.id = %(user_id)s""", {
+                'language': language,
+                'user_id': user_id,
+            })
+            
     def users_get_identity(self, user_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT users.name, users.status, users.anonymous
+            cursor.execute("""SELECT users.name, users.language, users.status, users.anonymous
                 FROM users
                 WHERE users.id = %(user_id)s
                 LIMIT 1""", {
@@ -459,26 +475,26 @@ class _Database(object):
                 'comment': comment,
             })
             
-    def items_search(self, filter, limit):
+    def items_search(self, language, filter, limit):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT base_items.name, items.id, items.hq
+            cursor.execute("""SELECT base_items.name_{language}, items.id, items.hq
                 FROM items, base_items
                 WHERE LOWER(base_items.name) LIKE '%%%(filter)s%%'
                   AND base_items.id = items.base_item_id
                 ORDER BY base_items.name ASC, items.hq ASC
-                LIMIT %(limit)s""", {
+                LIMIT %(limit)s""".format(language=language), {
                 'filter': filter,
                 'limit': limit,
             })
             return list(self._iterate_results(cursor))
             
-    def items_get_properties(self, item_id):
+    def items_get_properties(self, language, item_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT base_items.name, base_items.id, base_items.lodestone_id, items.hq
+            cursor.execute("""SELECT base_items.name_{language}, base_items.id, base_items.lodestone_id, items.hq
                 FROM items, base_items
                 WHERE items.id = %(item_id)s
                   AND base_items.id = items.base_item_id
-                LIMIT 1""", {
+                LIMIT 1""".format(language=language), {
                 'item_id': item_id,
             })
             return cursor.fetchone()
@@ -638,9 +654,9 @@ class _Database(object):
                 'reporter': reporter,
             })
             
-    def flags_list(self):
+    def flags_list(self, language):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT flags.price_item_id, base_items.name, items.hq,
+            cursor.execute("""SELECT flags.price_item_id, base_items.name_{language}, items.hq,
                     flags.price_ts, prices.value,
                     reporter.id, reporter.name, reporter.anonymous,
                     reportee.id, reportee.name, reportee.anonymous
@@ -651,7 +667,7 @@ class _Database(object):
                   AND flags.reported_by = reporter.id
                   AND prices.submitting_user = reportee.id
                   AND base_items.id = items.base_item_id
-                ORDER BY flags.price_ts ASC""")
+                ORDER BY flags.price_ts ASC""".format(language=language))
             return map(
                 lambda (
                     item_id, item_name, hq,

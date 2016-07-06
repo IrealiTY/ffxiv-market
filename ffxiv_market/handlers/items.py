@@ -12,6 +12,8 @@ from _common import (
     USER_STATUS_GUEST,
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
 
 _ONE_MINUTE = 60
@@ -148,7 +150,9 @@ class ItemHandler(Handler):
     @tornado.web.authenticated
     def get(self, item_id):
         item_id = int(item_id)
-        item_properties = DATABASE.items_get_properties(item_id)
+        context = self._common_setup()
+        
+        item_properties = DATABASE.items_get_properties(language=context['identity']['language'], item_id=item_id)
         if item_properties is None:
             raise tornado.web.HTTPError(42, reason='"{item_id}" is not a known item; submit a price to create it'.format(
                 item_id=item_id,
@@ -161,10 +165,6 @@ class ItemHandler(Handler):
             quality_counterpart = DATABASE.items_get_latest_by_id(quality_counterpart_id)
             
         (crafted_from, crafts_into) = DATABASE.related_get(item_id)
-        
-        context = self._common_setup(
-            page_title=item_name,
-        )
         
         price_data = DATABASE.items_get_prices(item_id, max_age=(context['rendering']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
         
@@ -206,6 +206,7 @@ class ItemHandler(Handler):
             new_normalised_data = None
         del normalised_data
         
+        context['rendering']['title'] = item_name
         context.update({
             'item_name': item_name,
             'item_id': item_id,
@@ -341,8 +342,10 @@ class AjaxQueryNames(Handler):
         item_name = self.get_argument("term")
         limit = CONFIG['lists']['search']['limit']
         
+        context = self._build_common_context()
+        
         options = []
-        for (name, id, hq) in DATABASE.items_get_names(filter=item_name, limit=limit):
+        for (name, id, hq) in DATABASE.items_get_names(language=context['identity']['language'], filter=item_name, limit=limit):
             if hq:
                 name = '{name} HQ'.format(name=name)
             options.append({

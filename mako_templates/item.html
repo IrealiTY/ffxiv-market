@@ -110,13 +110,13 @@
         %if crafted_from:
             <div>
                 <span style="font-size: 1.5em;">Crafted from</span><br/>
-                ${render_item_list(sorted(crafted_from, key=(lambda i: i.item_state.name)), 'crf')}
+                ${render_item_list(sorted(crafted_from, key=(lambda i: getattr(i.item_state.name, identity['language']))), 'crf')}
             </div>
         %endif
         %if crafts_into:
             <div>
                 <span style="font-size: 1.5em;">Crafts into</span><br/>
-                ${render_item_list(sorted(crafts_into, key=(lambda i: i.item_state.name)), 'cri')}
+                ${render_item_list(sorted(crafts_into, key=(lambda i: getattr(i.item_state.name, identity['language']))), 'cri')}
             </div>
         %endif
         %if role['moderator']:

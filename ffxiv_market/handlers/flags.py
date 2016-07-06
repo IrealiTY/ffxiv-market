@@ -10,6 +10,8 @@ from _common import (
     USER_STATUS_GUEST,
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
 
 _logger = logging.getLogger('handlers.items')
@@ -22,7 +24,7 @@ class FlagsHandler(Handler):
             restrict=restrict_moderator,
         )
         
-        context['flags'] = DATABASE.flags_list()
+        context['flags'] = DATABASE.flags_list(language=context['identity']['language'])
         self._render('flags.html', context, html_headers=(
             '<script src="/static/ajax.js"></script>',
         ))

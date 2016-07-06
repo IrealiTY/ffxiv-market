@@ -64,7 +64,8 @@ APPLICATION = tornado.web.Application(
         (r"/users", ffxiv_market.handlers.users.ListHandler),
         (r"/users/moderators", ffxiv_market.handlers.users.ModeratorsHandler),
         (r"/users/(\d+)", ffxiv_market.handlers.users.ProfileHandler),
-        (r"/users/anonymity-update", ffxiv_market.handlers.users.AnonymityUpdateHandler),
+        (r"/users/update-anonymity", ffxiv_market.handlers.users.UpdateAnonymityHandler),
+        (r"/users/update-language", ffxiv_market.handlers.users.UpdateLanguageHandler),
         (r"/users/set-status", ffxiv_market.handlers.users.SetStatusHandler),
         (r"/users/accept-recovery-password", ffxiv_market.handlers.users.AcceptRecoveryPasswordHandler),
         

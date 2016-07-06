@@ -1,9 +1,15 @@
 CREATE TABLE base_items(
     id INTEGER PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    name_en TEXT UNIQUE NOT NULL,
+    name_ja TEXT UNIQUE NOT NULL,
+    name_fr TEXT UNIQUE NOT NULL,
+    name_de TEXT UNIQUE NOT NULL,
     lodestone_id TEXT UNIQUE NOT NULL
 );
-CREATE INDEX idx_base_items_name_lower ON base_items(LOWER(name));
+--These will help a lot if we limit searches to prefixes, but they're useless if we allow full substring searching
+--CREATE INDEX idx_base_items_name_en_lower ON base_items(LOWER(name_en));
+--CREATE INDEX idx_base_items_name_fr_lower ON base_items(LOWER(name_fr));
+--CREATE INDEX idx_base_items_name_de_lower ON base_items(LOWER(name_de));
 
 CREATE TABLE items(
     id SERIAL PRIMARY KEY,
@@ -18,6 +24,7 @@ CREATE TABLE users(
     last_seen_ts TIMESTAMP DEFAULT NULL,
     anonymous BOOLEAN DEFAULT true NOT NULL,
     status SMALLINT DEFAULT 0 NOT NULL,
+    language CHAR(2) DEFAULT 'en' NOT NULL,
     password_hash_candidate_ts TIMESTAMP DEFAULT NULL,
     name TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
