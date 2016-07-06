@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import collections
 import datetime
 import logging
@@ -479,11 +480,11 @@ class _Database(object):
         with self._pool.get_cursor() as cursor:
             cursor.execute("""SELECT base_items.name_{language}, items.id, items.hq
                 FROM items, base_items
-                WHERE LOWER(base_items.name) LIKE '%%%(filter)s%%'
+                WHERE LOWER(base_items.name_{language}) LIKE %(filter)s
                   AND base_items.id = items.base_item_id
-                ORDER BY base_items.name ASC, items.hq ASC
+                ORDER BY base_items.name_{language} ASC, items.hq ASC
                 LIMIT %(limit)s""".format(language=language), {
-                'filter': filter,
+                'filter': '%{v}%'.format(v=filter.lower()),
                 'limit': limit,
             })
             return list(self._iterate_results(cursor))
@@ -576,8 +577,9 @@ class _Database(object):
             price = ItemPrice(_datetime_to_epoch(cursor.fetchone()[0]), value, None, False)
             
             #Update the cache
+            old_item_ref = self._cache._cache.get_item_by_id(item_id)
             self._cache.update(ItemRef(
-                ItemState(self._cache.get_item_by_id(item_id), item_id, price),
+                ItemState(self._cache.get_item_by_id(item_id), item_id, old_item_ref.item_state.hq, price),
                 self._items_compute_average(item_id),
             ))
             
@@ -804,15 +806,15 @@ class _Database(object):
             
     def related_get(self, item_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT related_item_id
+            cursor.execute("""SELECT related_base_item_id
                 FROM related_crafted_from
-                WHERE item_id = %(item_id)s""", {
+                WHERE base_item_id = %(item_id)s""", {
                 'item_id': item_id,
             })
             crafted_from = [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)]
-            cursor.execute("""SELECT related_item_id
+            cursor.execute("""SELECT related_base_item_id
                 FROM related_crafts_into
-                WHERE item_id = %(item_id)s""", {
+                WHERE base_item_id = %(item_id)s""", {
                 'item_id': item_id,
             })
             return (crafted_from, [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)])

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import httplib
 import logging
 import os
@@ -83,8 +84,8 @@ class Handler(tornado.web.RequestHandler):
         return {
             'user_id': user_id,
             'user_name': identity[0],
-            'status': identity[1],
-            'language': identity[2],
+            'language': identity[1],
+            'status': identity[2],
             'anonymous': identity[3],
         }
         
@@ -125,9 +126,6 @@ class Handler(tornado.web.RequestHandler):
         
         if restrict:
             restrict(context)
-            
-        if context['identity']['user_id'] is not None:
-            context['rendering']['all_item_names'] = DATABASE.items_get_names()
             
         return context
         

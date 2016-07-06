@@ -40,17 +40,15 @@
                     gil
                     <input type="submit" value="go"/>
                 </form>
-                %if role['active']:
-                    <script>
-                        $(function(){
-                            $("#itemselect").autocomplete({
-                                source: "/items/ajax-query-names",
-                                delay: 300,
-                                minLength: 4
-                            });
+                <script>
+                    $(function(){
+                        $("#itemselect").autocomplete({
+                            source: "/items/ajax-query-names",
+                            delay: 300,
+                            minLength: 4
                         });
-                    </script>
-                %endif  
+                    });
+                </script>
             %endif
         </div>
         <div style="clear: both;"></div>

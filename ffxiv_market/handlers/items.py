@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import collections
 import json
 import logging
@@ -164,7 +165,7 @@ class ItemHandler(Handler):
         if quality_counterpart_id is not None:
             quality_counterpart = DATABASE.items_get_latest_by_id(quality_counterpart_id)
             
-        (crafted_from, crafts_into) = DATABASE.related_get(item_id)
+        (crafted_from, crafts_into) = DATABASE.related_get(xivdb_id)
         
         price_data = DATABASE.items_get_prices(item_id, max_age=(context['rendering']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
         
@@ -339,13 +340,13 @@ class AjaxUnwatchHandler(Handler):
 class AjaxQueryNames(Handler):
     @tornado.web.authenticated
     def get(self):
-        item_name = self.get_argument("term")
+        search_term = self.get_argument("term")
         limit = CONFIG['lists']['search']['limit']
         
         context = self._build_common_context()
         
         options = []
-        for (name, id, hq) in DATABASE.items_get_names(language=context['identity']['language'], filter=item_name, limit=limit):
+        for (name, id, hq) in DATABASE.items_search(language=context['identity']['language'], filter=search_term, limit=limit):
             if hq:
                 name = '{name} HQ'.format(name=name)
             options.append({

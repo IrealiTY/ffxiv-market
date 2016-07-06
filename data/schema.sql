@@ -13,7 +13,7 @@ CREATE TABLE base_items(
 
 CREATE TABLE items(
     id SERIAL PRIMARY KEY,
-    base_item_id INTEGER NOT NULL REFERENCES(base_items),
+    base_item_id INTEGER NOT NULL REFERENCES base_items(id),
     hq BOOLEAN NOT NULL
 );
 CREATE INDEX idx_items_base_item_id ON items(base_item_id);
@@ -73,11 +73,11 @@ CREATE TABLE watchlist(
 CREATE TABLE related_crafted_from(
     base_item_id INTEGER NOT NULL REFERENCES base_items(id) ON DELETE CASCADE,
     related_base_item_id INTEGER NOT NULL REFERENCES base_items(id) ON DELETE CASCADE,
-    PRIMARY KEY (item_id, related_item_id)
+    PRIMARY KEY (base_item_id, related_base_item_id)
 );
 
 CREATE TABLE related_crafts_into(
     base_item_id INTEGER NOT NULL REFERENCES base_items(id) ON DELETE CASCADE,
     related_base_item_id INTEGER NOT NULL REFERENCES base_items(id) ON DELETE CASCADE,
-    PRIMARY KEY (item_id, related_item_id)
+    PRIMARY KEY (base_item_id, related_base_item_id)
 );
