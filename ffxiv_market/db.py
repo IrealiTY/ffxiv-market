@@ -627,8 +627,9 @@ class _Database(object):
                 result = cursor.fetchone()
                 if result is not None: #There's still data
                     (timestamp, value) = result
+                    old_item_ref = self._cache.get_item_by_id(item_id)
                     self._cache.update(ItemRef(
-                        ItemState(self._cache.get_item_by_id(item_id).item_state.name, item_id, hq, ItemPrice(
+                        ItemState(old_item_ref.item_state.name, item_id, old_item_ref.item_state.hq, ItemPrice(
                             _datetime_to_epoch(timestamp),
                             value, None, False,
                         )),
