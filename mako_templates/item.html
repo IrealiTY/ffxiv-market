@@ -67,7 +67,7 @@
 <div style="clear: both;"></div>
 <div style="float: left; padding-right: 15px;">
     <span style="font-size: 1.75em;">${item_name}</span>
-    <a href="https://xivdb.com/item/${item_id | h}">view on XIVDB</a>
+    <a href="https://xivdb.com/item/${xivdb_id | h}">view on XIVDB</a>
     <a href="http://na.finalfantasyxiv.com/lodestone/playguide/db/item/${lodestone_id | h}/">view on The Lodestone</a>
     <form action="/items/price-update" method="post" style="display: inline;">
         <input type="hidden" name="item_id" value="${item_id}"/>
@@ -110,21 +110,13 @@
         %if crafted_from:
             <div>
                 <span style="font-size: 1.5em;">Crafted from</span><br/>
-                ${render_item_list(sorted(crafted_from, key=(lambda i: getattr(i.item_state.name, identity['language']))), 'crf')}
+                ${render_item_list(crafted_from, 'crf')}
             </div>
         %endif
         %if crafts_into:
             <div>
                 <span style="font-size: 1.5em;">Crafts into</span><br/>
-                ${render_item_list(sorted(crafts_into, key=(lambda i: getattr(i.item_state.name, identity['language']))), 'cri')}
-            </div>
-        %endif
-        %if role['moderator']:
-            <div>
-                <form action="/items/related-items-update" method="post">
-                    <input type="hidden" name="item_id" value="${item_id}"/>
-                    <input type="submit" value="re-index related items"/>
-                </form>
+                ${render_item_list(crafts_into, 'cri')}
             </div>
         %endif
     </div>

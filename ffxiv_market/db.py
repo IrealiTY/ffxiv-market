@@ -183,18 +183,24 @@ class _Database(object):
         with self._pool.get_cursor() as cursor:
             cursor.execute("""SELECT DISTINCT ON (items.id) items.id, items.hq, prices.ts, prices.value,
                      base_items.name_en, base_items.name_ja, base_items.name_fr, base_items.name_de
-                FROM items, prices, base_items
-                WHERE prices.item_id = items.id
-                  AND base_items.id = items.base_item_id
+                FROM base_items,
+                     items LEFT OUTER JOIN prices ON (items.id = prices.item_id)
+                WHERE base_items.id = items.base_item_id
                 ORDER BY items.id ASC, prices.ts DESC""")
             for (item_id, hq, ts, value, name_en, name_ja, name_fr, name_de) in self._iterate_results(cursor, buffer_size=512):
+                if value:
+                    price = ItemPrice(
+                        _datetime_to_epoch(ts), value, None, False
+                    )
+                    average = self._items_compute_average(item_id)
+                else:
+                    price = average = None
+
                 yield ItemRef(
                     ItemState(
-                        ItemName(name_en, name_ja, name_fr, name_de), item_id, hq, ItemPrice(
-                            _datetime_to_epoch(ts), value, None, False
-                        ),
+                        ItemName(name_en, name_ja, name_fr, name_de), item_id, hq, price,
                     ),
-                    self._items_compute_average(item_id),
+                    average,
                 )
                 
     def users_create(self, username, password):
@@ -577,7 +583,7 @@ class _Database(object):
             price = ItemPrice(_datetime_to_epoch(cursor.fetchone()[0]), value, None, False)
             
             #Update the cache
-            old_item_ref = self._cache._cache.get_item_by_id(item_id)
+            old_item_ref = self._cache.get_item_by_id(item_id)
             self._cache.update(ItemRef(
                 ItemState(self._cache.get_item_by_id(item_id), item_id, old_item_ref.item_state.hq, price),
                 self._items_compute_average(item_id),
