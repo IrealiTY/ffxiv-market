@@ -1,0 +1,27 @@
+/* Header Bar */
+
+/* Content */
+.content {
+    padding: 20px;
+}
+
+.card img {
+        width: 100%;
+    }
+}
+
+/* Footer */
+footer {
+    padding: 20px 0;
+    font-size: 12px;
+    border-top: 1px solid #B9C1CB;
+    margin-top: 40px;
+    color: #7A868F;
+}
+
+footer a {
+    color: #7A868F;
+    padding: 1px 10px;
+    border-right: 1px solid rgba(0,0,0,0.1);
+}
+

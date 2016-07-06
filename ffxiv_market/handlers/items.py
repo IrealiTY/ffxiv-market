@@ -42,6 +42,8 @@ class ItemsHandler(Handler):
         context = self._common_setup(page_title="Items")
         context.update({
             'crystal_list': _CRYSTAL_LIST,
+            'watch_count': DATABASE.watchlist_count(context['identity']['user_id']),
+            'watch_limit': CONFIG['lists']['item_watch']['limit'],
         })
         
         self._render('items.html', context, html_headers=(
