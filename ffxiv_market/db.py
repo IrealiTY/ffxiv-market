@@ -810,18 +810,20 @@ class _Database(object):
             })
             return [self._cache.get_item_by_id(i[1]) for i in self._iterate_results(cursor)]
             
-    def related_get(self, item_id):
+    def related_get(self, base_item_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT related_base_item_id
-                FROM related_crafted_from
-                WHERE base_item_id = %(item_id)s""", {
-                'item_id': item_id,
+            cursor.execute("""SELECT items.id
+                FROM related_crafted_from, items
+                WHERE related_crafted_from.base_item_id = %(base_item_id)s
+                  AND related_crafted_from.related_base_item_id = items.base_item_id""", {
+                'base_item_id': base_item_id,
             })
             crafted_from = [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)]
-            cursor.execute("""SELECT related_base_item_id
-                FROM related_crafts_into
-                WHERE base_item_id = %(item_id)s""", {
-                'item_id': item_id,
+            cursor.execute("""SELECT items.id
+                FROM related_crafts_into, items
+                WHERE related_crafts_into.base_item_id = %(base_item_id)s
+                  AND related_crafts_into.related_base_item_id = items.base_item_id""", {
+                'base_item_id': base_item_id,
             })
             return (crafted_from, [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)])
 DATABASE = _Database()
