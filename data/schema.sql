@@ -8,6 +8,7 @@ CREATE TABLE base_items(
 );
 --These will help a lot if we limit searches to prefixes, but they're useless if we allow full substring searching
 --CREATE INDEX idx_base_items_name_en_lower ON base_items(LOWER(name_en));
+--CREATE INDEX idx_base_items_name_ja_lower ON base_items(LOWER(name_ja));
 --CREATE INDEX idx_base_items_name_fr_lower ON base_items(LOWER(name_fr));
 --CREATE INDEX idx_base_items_name_de_lower ON base_items(LOWER(name_de));
 

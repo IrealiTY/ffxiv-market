@@ -2,7 +2,6 @@
 import collections
 import json
 import logging
-import re
 
 import tornado.web
 
@@ -23,16 +22,17 @@ _ONE_DAY = _ONE_HOUR * 24
 _ONE_WEEK = _ONE_DAY * 7
 _ONE_MONTH = _ONE_WEEK * 4
 
-_RE_ROMAN_NUMERALS = re.compile(r'^[ivxlc]+$')
-
-_CRYSTAL_LIST = (
-    #'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
-    2, 3, 4, 5, 6, 7,
-    #'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
-    8, 9, 10, 11, 12, 13,
-    #'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
-    14, 15, 16, 17, 18, 19,
+_crystal_list = dict(
+    (item.item_state.name.en, item.item_state.id) for item in DATABASE.items_query(
+        lambda items: [i for i in items if i.item_state.name.en.endswith((' Shard', ' Crystal', ' Cluster',))]
+    )
 )
+_CRYSTAL_LIST = tuple(map(_crystal_list.get, (
+    'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
+    'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
+    'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+)))
+del _crystal_list
 
 _logger = logging.getLogger('handlers.items')
 
@@ -203,13 +203,14 @@ class ItemHandler(Handler):
                         break
                 else:
                     new_normalised_data.append(last_value)
+            normalised_data = new_normalised_data
         else: #Not enough data to do time-based analysis
-            new_normalised_data = None
-        del normalised_data
-        
+            normalised_data = None
+            
         context['rendering']['title'] = item_name
         context.update({
             'item_name': item_name,
+            'item_hq': hq,
             'item_id': item_id,
             'xivdb_id': xivdb_id,
             'lodestone_id': lodestone_id,
@@ -217,7 +218,7 @@ class ItemHandler(Handler):
             'crafted_from': sorted((i for i in crafted_from if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
             'crafts_into': sorted((i for i in crafts_into if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
             'price_data': price_data,
-            'normalised_data': new_normalised_data,
+            'normalised_data': normalised_data,
             'normalised_data_timescale': normalised_data_timescale,
             'average_month': average_month,
             'average_week': average_week,

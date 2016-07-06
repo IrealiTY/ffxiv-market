@@ -36,28 +36,34 @@ def _datetime_to_epoch(timestamp):
     
 _epoch_to_datetime = datetime.datetime.utcfromtimestamp
 
-class WriteWaitLock(object):
+class WritePriorityLock(object):
     def __init__(self):
-        self._reader_lock = threading.Condition(threading.Lock())
+        self._lock = threading.Condition(threading.Lock())
         self._readers = 0
+        self._writer = False
 
     def read_start(self):
-        with self._reader_lock:
+        with self._lock:
+            while self._writer:
+                self._lock.wait()
             self._readers += 1
             
     def read_stop(self):
-        with self._reader_lock:
+        with self._lock:
             self._readers -= 1
             if not self._readers:
-                self._reader_lock.notify_all()
+                self._lock.notify_all()
                 
     def write_start(self):
-        self._reader_lock.acquire()
+        self._lock.acquire()
+        self._writer = True
         while self._readers:
-            self._read_ready.wait()
+            self._lock.wait()
             
     def write_stop(self):
-        self._reader_lock.release()
+        self._writer = False
+        self._lock.notify_all()
+        self._lock.release()
         
 class _Cache(object):
     """
@@ -68,7 +74,7 @@ class _Cache(object):
     _item_refs = None
     
     def __init__(self, item_data):
-        self._lock = WriteWaitLock()
+        self._lock = WritePriorityLock()
         
         self._item_refs = list(item_data)
         
@@ -521,6 +527,9 @@ class _Database(object):
     def items_get_latest_by_id(self, item_id):
         return self._cache.get_item_by_id(item_id)
         
+    def items_query(self, query):
+        return self._cache.query(query)
+        
     def _query__items_get_recently_updated(self, limit, max_age, items):
         candidates = [i for i in items if i.item_state.price and i.item_state.price.timestamp > max_age]
         return sorted(candidates, key=(lambda i: i.item_state.price.timestamp), reverse=True)[:limit]
@@ -810,18 +819,20 @@ class _Database(object):
             })
             return [self._cache.get_item_by_id(i[1]) for i in self._iterate_results(cursor)]
             
-    def related_get(self, item_id):
+    def related_get(self, base_item_id):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT related_base_item_id
-                FROM related_crafted_from
-                WHERE base_item_id = %(item_id)s""", {
-                'item_id': item_id,
+            cursor.execute("""SELECT items.id
+                FROM related_crafted_from, items
+                WHERE related_crafted_from.base_item_id = %(base_item_id)s
+                  AND related_crafted_from.related_base_item_id = items.base_item_id""", {
+                'base_item_id': base_item_id,
             })
             crafted_from = [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)]
-            cursor.execute("""SELECT related_base_item_id
-                FROM related_crafts_into
-                WHERE base_item_id = %(item_id)s""", {
-                'item_id': item_id,
+            cursor.execute("""SELECT items.id
+                FROM related_crafts_into, items
+                WHERE related_crafts_into.base_item_id = %(base_item_id)s
+                  AND related_crafts_into.related_base_item_id = items.base_item_id""", {
+                'base_item_id': base_item_id,
             })
             return (crafted_from, [self._cache.get_item_by_id(i[0]) for i in self._iterate_results(cursor)])
 DATABASE = _Database()
