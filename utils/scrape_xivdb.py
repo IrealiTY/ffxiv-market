@@ -96,19 +96,23 @@ print("DROP RULE items_on_duplicate_ignore ON items;")
 
 print("DELETE FROM related_crafted_from;")
 for (item_id, related) in sorted(crafted_from.iteritems()):
-    print("INSERT INTO related_crafted_from VALUES{values};".format(
-        values=','.join('({item_id},{related_id})'.format(
-            item_id=item_id,
-            related_id=i,
-        ) for i in sorted(item_ids.intersection(related))),
-    ))
-    
+    values = ','.join('({item_id},{related_id})'.format(
+        item_id=item_id,
+        related_id=i,
+    ) for i in sorted(item_ids.intersection(related)))
+    if values:
+        print("INSERT INTO related_crafted_from VALUES{values};".format(
+            values=values,
+        ))
+        
 print("DELETE FROM related_crafts_into;")
 for (item_id, related) in sorted(crafts_into.items()):
-    print("INSERT INTO related_crafts_into VALUES{values};".format(
-        values=','.join('({item_id},{related_id})'.format(
-            item_id=item_id,
-            related_id=i,
-        ) for i in sorted(item_ids.intersection(related))),
-    ))
-    
+    values = ','.join('({item_id},{related_id})'.format(
+        item_id=item_id,
+        related_id=i,
+    ) for i in sorted(item_ids.intersection(related)))
+    if values:
+        print("INSERT INTO related_crafts_into VALUES{values};".format(
+            values=values,
+        ))
+        
