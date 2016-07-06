@@ -5,7 +5,7 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <title>${site['site_name']} - ${page['title']}</title>
+        <title>${CONFIG['meta']['site_name']} - ${rendering['title']}</title>
         <meta name="description" content="${site['site_name']} is a crowd-sourced database of market board information for Final Fantasy XIV" />
         <meta name="keywords" content="FFXIV, Final Fantasy XIV, Heavensward, Realm Reborn, Marketboard, Market" />
         <meta name="author" content="Neil Tallim" />
@@ -13,7 +13,7 @@
         <link rel="icon" href="/static/favicon.ico">
 
 
-        %for header in page['header_extra']:
+        %for header in rendering['html_headers']:
             ${header}
         %endfor
         
@@ -27,13 +27,14 @@
         <script src="https://cdn.jsdelivr.net/jquery/2.1.4/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/jquery.migrate/1.4.1/jquery-migrate.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+        <script src="/static/formatting.js"></script>
 
     </head>
     <body>
         <!-- Navigation -->
 
          <nav class="navbar navbar-default" role="navigation">
-         <a class="navbar-brand" href="#">${site['site_name']}</a>
+         <a class="navbar-brand" href="#">${CONFIG['meta']['site_name']}</a>
                         <ul class="nav navbar-nav">
                             <li class="nav-item active">
                             %if role['active']:
@@ -44,6 +45,8 @@
                             %if role['moderator']:
                             <li class="nav-item active"><a class="nav-link" href="/flags">Flags (${notifications['flags']})</a></li>
                             <li class="nav-item active"><a class="nav-link" href="/users">Users</a></li>
+                            %else:
+                            <li class="nav-item active"><a class="nav-link" href="/users/moderators">Moderators</a></li>
                             %endif
                             %if role['active']:
                             <li class="nav-item active"><a class="nav-link" href="/logout">Logout</a></li>
@@ -52,23 +55,23 @@
                             %if role['active']:
                               <form ction="/items/price-update" method="post" class="form-inline pull-xs-right">
                               <label for="itemselect" class="col-sm-2 form-control-label">Add Item Price</label>
-                                <input class="form-control" type="text" name="name" id="itemselect" placeholder="Item Name" required>
+                                <input class="form-control" type="text" name="item_id" id="itemselect" placeholder="Item Name" required>
                                 <div class="form-group">
                                     <label class="sr-only" for="exampleInputAmount">Price</label>
                                     <div class="input-group">
-                                    <input type="number" name="value" min="0" max="999999999" size="9" autocomplete="off" class="form-control" placeholder="Amount">
+                                    <input type="number" name="value" min="0" max="999999999" autocomplete="off" class="form-control" placeholder="Amount">
                                 </div>
-
                                 <button class="btn btn-success-outline" type="submit" type="submit" value="go">Go</button>
                               </form>
 
                             <script>
-                            $(function(){
-                                var items = [${','.join('"{item}"'.format(item=i) for i in page['all_item_names'])}];
-                                $("#itemselect").autocomplete({
-                                    source: items
+                                $(function(){
+                                    $("#itemselect").autocomplete({
+                                        source: "/items/ajax-query-names",
+                                        delay: 300,
+                                        minLength: 4
+                                    });
                                 });
-                            });
                             </script>
                             %endif
          </nav>

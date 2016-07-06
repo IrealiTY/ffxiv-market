@@ -3,7 +3,7 @@
 %>
 
 <%def name="format_timestamp_friendly(timestamp)"><%
-age = int(page['time_current'] - timestamp)
+age = int(rendering['time_current'] - timestamp)
 qualifier = "ago"
 if age < 0:
     qualifier = "from now"
@@ -31,19 +31,19 @@ if age == 1:
 </%def>
 
 <%def name="_render_item(item_ref, callback_id)">
-    <a href="/items/${item_ref.item_state.id}">${item_ref.item_state.name}</a>
+    <a href="/items/${item_ref.item_state.id}">${getattr(item_ref.item_state.name, identity['language'])}</a>
     @ <span id="prc-${callback_id}">${item_ref.item_state.price.value and '{p:,}'.format(p=item_ref.item_state.price.value) or 'none'}</span>
-    <div ${"id=\"ts-{callback_id}\" onclick=\"$('#frm-{callback_id}').show('blind');\"".format(callback_id=callback_id)} style="display: inline;">
-        %if item_ref.item_state.price.value and item_ref.average and item_ref.item_state.price.timestamp > (page['time_current'] - 43200):
-            <%
-                price_delta = item_ref.item_state.price.value - item_ref.average
-            %>
-            %if price_delta < 0:
-                <img src="/static/loss.png"/> ${price_delta * -1}
-            %elif price_delta > 0:
-                <img src="/static/gain.png"/> ${price_delta}
-            %endif
+    %if item_ref.item_state.price.value and item_ref.average and item_ref.item_state.price.timestamp > (rendering['time_current'] - 43200):
+        <%
+            price_delta = item_ref.item_state.price.value - item_ref.average
+        %>
+        %if price_delta < 0:
+            <img src="/static/loss.png"/> ${price_delta * -1}</img>
+        %elif price_delta > 0:
+            <img src="/static/gain.png"/> ${price_delta}</img>
         %endif
+    %endif
+    <div ${"id=\"ts-{callback_id}\" onclick=\"$('#frm-{callback_id}').show('blind');\"".format(callback_id=callback_id)} style="display: inline;">
         ${render_timestamp(item_ref.item_state.price.timestamp)}
         <div style="display: none;" id="frm-${callback_id}">
             <form class="inl-up">
@@ -62,7 +62,7 @@ if age == 1:
     %if item_refs:
         <ul class="ffxiv-list">
             %for item_ref in item_refs:
-                %if not item_ref:
+                %if not item_ref or not item_ref.item_state.price:
                     <%continue%>
                 %endif
                 <%

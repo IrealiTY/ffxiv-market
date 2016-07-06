@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 import json
 import logging
 import logging.handlers
@@ -44,10 +45,10 @@ import ffxiv_market.handlers.users
 APPLICATION = tornado.web.Application(
     [
         (r"/static/(.*)", tornado.web.StaticFileHandler, {
-            'path': CONFIG['server']['static_path'],
+            'path': CONFIG['server']['tornado']['static_path'],
         }),
         (r"/(favicon\.ico)", tornado.web.StaticFileHandler, {
-            'path': CONFIG['server']['static_path'],
+            'path': CONFIG['server']['tornado']['static_path'],
         }),
         
         (r"/", tornado.web.RedirectHandler, {
@@ -64,7 +65,8 @@ APPLICATION = tornado.web.Application(
         (r"/users", ffxiv_market.handlers.users.ListHandler),
         (r"/users/moderators", ffxiv_market.handlers.users.ModeratorsHandler),
         (r"/users/(\d+)", ffxiv_market.handlers.users.ProfileHandler),
-        (r"/users/anonymity-update", ffxiv_market.handlers.users.AnonymityUpdateHandler),
+        (r"/users/update-anonymity", ffxiv_market.handlers.users.UpdateAnonymityHandler),
+        (r"/users/update-language", ffxiv_market.handlers.users.UpdateLanguageHandler),
         (r"/users/set-status", ffxiv_market.handlers.users.SetStatusHandler),
         (r"/users/accept-recovery-password", ffxiv_market.handlers.users.AcceptRecoveryPasswordHandler),
         
@@ -72,20 +74,23 @@ APPLICATION = tornado.web.Application(
         (r"/items/(\d+)", ffxiv_market.handlers.items.ItemHandler),
         (r"/items/price-update", ffxiv_market.handlers.items.PriceUpdateHandler),
         (r"/items/price-delete", ffxiv_market.handlers.items.PriceDeleteHandler),
-        (r"/items/related-items-update", ffxiv_market.handlers.items.RelatedItemsUpdateHandler),
         (r"/items/ajax-price-update", ffxiv_market.handlers.items.AjaxPriceUpdateHandler),
         (r"/items/ajax-price-delete", ffxiv_market.handlers.items.AjaxPriceDeleteHandler),
         (r"/items/ajax-watch", ffxiv_market.handlers.items.AjaxWatchHandler),
         (r"/items/ajax-unwatch", ffxiv_market.handlers.items.AjaxUnwatchHandler),
+        (r"/items/ajax-query-names", ffxiv_market.handlers.items.AjaxQueryNames),
         
         (r"/flags", ffxiv_market.handlers.flags.FlagsHandler),
         (r"/flags/ajax-resolve", ffxiv_market.handlers.flags.AjaxResolveHandler),
     ],
-    cookie_secret=CONFIG['server']['hmac'],
+    cookie_secret=CONFIG['server']['tornado']['hmac'],
     login_url=r'/login',
     debug=True,
 )
 
 if __name__ == "__main__":
-    APPLICATION.listen(CONFIG['server']['port'], address=CONFIG['server']['address'])
+    APPLICATION.listen(
+        CONFIG['server']['tornado']['port'],
+        address=CONFIG['server']['tornado']['address'],
+    )
     tornado.ioloop.IOLoop.instance().start()

@@ -9,9 +9,21 @@
 <h1>${user_name}</h1>
 <div>
     Status: ${user_status}<br/>
+    Language: ${user_language_options[user_language]}
+    %if identity['user_id'] == user_id:
+        <form style="display: inline;" action="/users/update-language" method="post">
+            <select name="language">
+                %for (value, label) in user_language_options.iteritems():
+                    <option value="${value}"${user_language == value and 'selected="selected"' or ''}>${label}</option>
+                %endif
+            </select>
+            <input type="submit" value="change"/>
+        </form>
+    %endif
+    <br/>
     Anonymous: ${user_anonymous and 'yes' or 'no'}
     %if identity['user_id'] == user_id:
-        <form style="display: inline;" action="/users/anonymity-update" method="post">
+        <form style="display: inline;" action="/users/update-anonymity" method="post">
             <input type="hidden" value="${user_anonymous and 'show' or 'hide'}" name="anonymity"/>
             <input type="submit" value="${user_anonymous and 'show my name' or 'hide my name'}"/>
         </form>

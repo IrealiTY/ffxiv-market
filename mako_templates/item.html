@@ -66,7 +66,9 @@
 
 <div style="clear: both;"></div>
 <div style="float: left; padding-right: 15px;">
-    <span style="font-size: 1.75em;"><a href="${item_db_url | h}">${item_name}</a></span>
+    <span style="font-size: 1.75em;">${item_name}</span>
+    <a href="https://xivdb.com/item/${xivdb_id | h}">view on XIVDB</a>
+    <a href="http://na.finalfantasyxiv.com/lodestone/playguide/db/item/${lodestone_id | h}/">view on The Lodestone</a>
     <form action="/items/price-update" method="post" style="display: inline;">
         <input type="hidden" name="item_id" value="${item_id}"/>
         @
@@ -108,21 +110,13 @@
         %if crafted_from:
             <div>
                 <span style="font-size: 1.5em;">Crafted from</span><br/>
-                ${render_item_list(sorted(crafted_from, key=(lambda i: i.item_state.name)), 'crf')}
+                ${render_item_list(crafted_from, 'crf')}
             </div>
         %endif
         %if crafts_into:
             <div>
                 <span style="font-size: 1.5em;">Crafts into</span><br/>
-                ${render_item_list(sorted(crafts_into, key=(lambda i: i.item_state.name)), 'cri')}
-            </div>
-        %endif
-        %if role['moderator']:
-            <div>
-                <form action="/items/related-items-update" method="post">
-                    <input type="hidden" name="item_id" value="${item_id}"/>
-                    <input type="submit" value="re-index related items"/>
-                </form>
+                ${render_item_list(crafts_into, 'cri')}
             </div>
         %endif
     </div>
@@ -145,8 +139,8 @@
                 data.addColumn('datetime', 'Time (${normalised_data_timescale / 3600.0}-hour windows)');
                 data.addColumn('number', 'Price in gil');
                 data.addRows([
-                    %for (i, datum) in enumerate(normalised_data):
-                        [new Date(${(page['time_current'] - ((len(normalised_data) - i - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${i < final_comma and ',' or ''}
+                    %for datum in normalised_data:
+                        [new Date(${(rendering['time_current'] - ((len(normalised_data) - loop.index - 1) * normalised_data_timescale) - half_timescale) * 1000}), ${datum or 'null'}]${loop.index < final_comma and ',' or ''}
                     %endfor
                 ]);
                 var options = {
@@ -159,8 +153,8 @@
                     },
                     hAxis: {
                         viewWindow: {
-                            min: new Date(${(page['time_current'] - 3600 * 24 * 28) * 1000}),
-                            max: new Date(${(page['time_current'] * 1000)})
+                            min: new Date(${(rendering['time_current'] - 3600 * 24 * CONFIG['graphing']['days']) * 1000}),
+                            max: new Date(${(rendering['time_current'] * 1000)})
                         },
                         gridlines: {
                             count: -1,

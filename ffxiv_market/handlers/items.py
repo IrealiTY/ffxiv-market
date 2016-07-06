@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 import collections
+import json
 import logging
 import re
 
@@ -11,9 +13,9 @@ from _common import (
     USER_STATUS_GUEST,
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
-
-import ffxiv_market.gamerescape as gamerescape
 
 _ONE_MINUTE = 60
 _ONE_HOUR = _ONE_MINUTE * 60
@@ -24,99 +26,32 @@ _ONE_MONTH = _ONE_WEEK * 4
 _RE_ROMAN_NUMERALS = re.compile(r'^[ivxlc]+$')
 
 _CRYSTAL_LIST = (
-    'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
-    'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
-    'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+    #'Fire Shard', 'Ice Shard', 'Wind Shard', 'Earth Shard', 'Lightning Shard', 'Water Shard',
+    2, 3, 4, 5, 6, 7,
+    #'Fire Crystal', 'Ice Crystal', 'Wind Crystal', 'Earth Crystal', 'Lightning Crystal', 'Water Crystal',
+    8, 9, 10, 11, 12, 13,
+    #'Fire Cluster', 'Ice Cluster', 'Wind Cluster', 'Earth Cluster', 'Lightning Cluster', 'Water Cluster',
+    14, 15, 16, 17, 18, 19,
 )
 
 _logger = logging.getLogger('handlers.items')
-
-def _normalise_item_name(item_name, include_hq=True):
-    item_tokens = item_name.strip().lower().split()
-    
-    hq = False
-    if item_tokens[-1] == 'hq':
-        hq = True
-        item_tokens.pop()
-        
-    item_name = []
-    for i in item_tokens:
-        if _RE_ROMAN_NUMERALS.match(i):
-            item_name.append(i.upper())
-        else:
-            item_name.append(i.title())
-            
-    if hq and include_hq:
-        item_name.append('HQ')
-        
-    return ' '.join(item_name)
-
-def _get_nq_name(item_name):
-    if item_name.endswith(' HQ'):
-        return item_name[:-3]
-    return item_name
 
 class ItemsHandler(Handler):
     @tornado.web.authenticated
     def get(self):
         context = self._common_setup(page_title="Items")
-        
-        crystals_list = [DATABASE.items_get_latest_by_name(name) for name in _CRYSTAL_LIST]
-        watch_list = DATABASE.watchlist_list(
-            user_id=context['identity']['user_id'],
-        )
-        most_watched_list = DATABASE.watchlist_get_most_watched(
-            limit=50,
-        )
-        
-        unavailable_list = DATABASE.items_get_no_supply(
-            limit=50,
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
-        )
-        valuable_list = DATABASE.items_get_most_valuable(
-            limit=(125 - len(unavailable_list)),
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
-            min_price=250,
-            max_price=7500,
-        )
-        
-        stale_list = DATABASE.items_get_stale(
-            limit=75,
-            min_age=(context['page']['time_current'] - _ONE_DAY),
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
-        )
-        updated_list = DATABASE.items_get_recently_updated(
-            limit=50,
-            max_age=(context['page']['time_current'] - _ONE_WEEK),
-        )
-        
-        context['page']['header_extra'] = [
-            '<script src="/static/ajax.js"></script>',
-        ]
         context.update({
-            'crystals_list': crystals_list,
-            'watch_list': watch_list,
-            'watch_count': len(watch_list),
-            'watch_limit': CONFIG['profiles']['item_watch_limit'],
-            'most_watched_list': most_watched_list,
-            'unavailable_list': unavailable_list,
-            'valuable_list': valuable_list,
-            'stale_list': stale_list,
-            'updated_list': updated_list,
+            'crystal_list': _CRYSTAL_LIST,
         })
-        self._render('items.html', context)
+        
+        self._render('items.html', context, html_headers=(
+            '<script src="/static/ajax.js"></script>',
+        ))
 
 class ItemHandler(Handler):
-    def _get_quality_counterpart(self, item_name):
-        #Determine if there's an HQ/NQ counterpart
-        nq_name = _get_nq_name(item_name)
-        if nq_name == item_name:
-            return DATABASE.items_get_latest_by_name(item_name + ' HQ')
-        return DATABASE.items_get_latest_by_name(nq_name)
-        
     def _normalise_data(self, price_data, current_time):
-        timescale = CONFIG['graphing']['timescale_seconds']
         data_points = CONFIG['graphing']['data_points']
+        timescale = int(_ONE_DAY * CONFIG['graphing']['days'] / float(data_points))
         
         ages = collections.defaultdict(list)
         for price in price_data:
@@ -128,9 +63,9 @@ class ItemHandler(Handler):
         prices = []
         for (age, pricing) in sorted(ages.items()):
             prices.append((age, int((max(pricing) + min(pricing)) / 2)))
-        return prices
+        return (prices, timescale)
         
-    def _get_maxmin(self, price_data, current_time):
+    def _compute_maxmin(self, price_data, current_time):
         low_24h = low_week = low_month = None
         low_24h_value = low_week_value = low_month_value = 999999999
         high_24h = high_week = high_month = None
@@ -172,9 +107,8 @@ class ItemHandler(Handler):
             high_24h, high_week, high_month,
         )
         
-    def _get_timeblock_averages(self, normalised_data):
-        seconds_per_day = 3600 * 24
-        slices_per_day = seconds_per_day / CONFIG['graphing']['timescale_seconds']
+    def _compute_timeblock_averages(self, normalised_data, normalised_data_timescale):
+        slices_per_day = int((3600.0 * 24) / normalised_data_timescale)
         
         days = collections.defaultdict(list)
         for datum in normalised_data:
@@ -185,14 +119,14 @@ class ItemHandler(Handler):
             
         return (days, weeks)
         
-    def _get_averages(self, timeblock_days, timeblock_weeks):
+    def _compute_averages(self, timeblock_days, timeblock_weeks):
         return (
             0 in timeblock_days and int(sum(timeblock_days[0]) / len(timeblock_days[0])) or None,
             0 in timeblock_weeks and int(sum(timeblock_weeks[0]) / len(timeblock_weeks[0])) or None,
             int(sum(int(sum(prices) / len(prices)) for prices in timeblock_weeks.values()) / len(timeblock_weeks)),
         )
         
-    def _get_trends(self, normalised_data, timeblock_days, timeblock_weeks):
+    def _compute_trends(self, normalised_data, timeblock_days, timeblock_weeks):
         if 0 in timeblock_weeks and 1 in timeblock_weeks:
             current_weekly_average = sum(timeblock_weeks[0]) / len(timeblock_weeks[0])
             previous_weekly_average = sum(timeblock_weeks[1]) / len(timeblock_weeks[1])
@@ -217,24 +151,23 @@ class ItemHandler(Handler):
     @tornado.web.authenticated
     def get(self, item_id):
         item_id = int(item_id)
-        item_name = DATABASE.items_id_to_name(item_id)
-        if item_name is None:
+        context = self._common_setup()
+        
+        item_properties = DATABASE.items_get_properties(language=context['identity']['language'], item_id=item_id)
+        if item_properties is None:
             raise tornado.web.HTTPError(42, reason='"{item_id}" is not a known item; submit a price to create it'.format(
                 item_id=item_id,
             ))
+        (item_name, xivdb_id, lodestone_id, hq) = item_properties
+        
+        quality_counterpart = None
+        quality_counterpart_id = DATABASE.items_get_hq_variant_id(xivdb_id, not hq)
+        if quality_counterpart_id is not None:
+            quality_counterpart = DATABASE.items_get_latest_by_id(quality_counterpart_id)
             
-        quality_counterpart = self._get_quality_counterpart(item_name)
-        (crafted_from, crafts_into) = DATABASE.related_get(item_id)
+        (crafted_from, crafts_into) = DATABASE.related_get(xivdb_id)
         
-        context = self._common_setup(
-            page_title=item_name,
-            header_extra=[
-                '<script src="/static/ajax.js"></script>',
-                '<script src="https://www.gstatic.com/charts/loader.js"></script>',
-            ],
-        )
-        
-        price_data = DATABASE.items_get_prices(item_id, limit=4096, max_age=(context['page']['time_current'] - _ONE_MONTH))
+        price_data = DATABASE.items_get_prices(item_id, max_age=(context['rendering']['time_current'] - (CONFIG['graphing']['days'] * _ONE_DAY)))
         
         #Defaults
         low_month = low_week = low_24h = None
@@ -242,15 +175,15 @@ class ItemHandler(Handler):
         average_month = average_week = average_24h = None
         trend_weekly = trend_daily = trend_current = None
         
-        normalised_data = self._normalise_data(price_data, context['page']['time_current'])
+        (normalised_data, normalised_data_timescale) = self._normalise_data(price_data, context['rendering']['time_current'])
         if normalised_data:
             (   low_24h, low_week, low_month,
                 high_24h, high_week, high_month,
-            ) = self._get_maxmin(price_data, context['page']['time_current'])
+            ) = self._compute_maxmin(price_data, context['rendering']['time_current'])
             
-            (timeblock_days, timeblock_weeks) = self._get_timeblock_averages(normalised_data)
-            (average_24h, average_week, average_month) = self._get_averages(timeblock_days, timeblock_weeks)
-            (trend_current, trend_daily, trend_weekly) = self._get_trends(normalised_data, timeblock_days, timeblock_weeks)
+            (timeblock_days, timeblock_weeks) = self._compute_timeblock_averages(normalised_data, normalised_data_timescale)
+            (average_24h, average_week, average_month) = self._compute_averages(timeblock_days, timeblock_weeks)
+            (trend_current, trend_daily, trend_weekly) = self._compute_trends(normalised_data, timeblock_days, timeblock_weeks)
             
         if len(normalised_data) > 1:
             #Reverse the data and pad holes
@@ -274,16 +207,18 @@ class ItemHandler(Handler):
             new_normalised_data = None
         del normalised_data
         
+        context['rendering']['title'] = item_name
         context.update({
             'item_name': item_name,
             'item_id': item_id,
-            'item_db_url': gamerescape.build_url(item_name),
+            'xivdb_id': xivdb_id,
+            'lodestone_id': lodestone_id,
             'quality_counterpart': quality_counterpart,
-            'crafted_from': crafted_from,
-            'crafts_into': crafts_into,
+            'crafted_from': sorted((i for i in crafted_from if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
+            'crafts_into': sorted((i for i in crafts_into if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
             'price_data': price_data,
             'normalised_data': new_normalised_data,
-            'normalised_data_timescale': CONFIG['graphing']['timescale_seconds'],
+            'normalised_data_timescale': normalised_data_timescale,
             'average_month': average_month,
             'average_week': average_week,
             'average_24h': average_24h,
@@ -298,18 +233,20 @@ class ItemHandler(Handler):
             'trend_current': trend_current,
             'delete_lockout_time': 0, #Assume it's a moderator by default, to avoid resizing the table
             'watch_count': DATABASE.watchlist_count(context['identity']['user_id']),
-            'watch_limit': CONFIG['profiles']['item_watch_limit'],
+            'watch_limit': CONFIG['lists']['item_watch']['limit'],
             'watching': DATABASE.watchlist_is_watching(context['identity']['user_id'], item_id),
         })
         if not context['role']['moderator']:
-            context['delete_lockout_time'] = context['page']['time_current'] - CONFIG['prices']['delete_lockout_seconds']
-        self._render('item.html', context)
-        
+            context['delete_lockout_time'] = context['rendering']['time_current'] - CONFIG['data']['prices']['delete_window']
+        self._render('item.html', context, html_headers=(
+                '<script src="/static/ajax.js"></script>',
+                '<script src="https://www.gstatic.com/charts/loader.js"></script>',
+            ))
+            
 class PriceUpdateHandler(Handler):
     @tornado.web.authenticated
     def post(self):
-        item_id = self.get_argument("item_id", default=None)
-        
+        item_id = int(self.get_argument("item_id"))
         value = self.get_argument("value", default=None)
         if value:
             try:
@@ -320,14 +257,6 @@ class PriceUpdateHandler(Handler):
                 ))
         else:
             value = None
-            
-        if item_id is None:
-            name = _normalise_item_name(self.get_argument("name"))
-            item_id = DATABASE.items_name_to_id(name)
-            if item_id is None:
-                item_id = DATABASE.items_create_item(name)
-        else:
-            item_id = int(item_id)
             
         context = self._build_common_context()
         if value is not None:
@@ -347,42 +276,11 @@ class PriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['prices']['delete_lockout_seconds']:
+            if context['rendering']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
             else:
                 DATABASE.items_delete_price(item_id, timestamp, context['identity']['user_id'])
                 
-        self.redirect("/items/{item_id}".format(
-            item_id=item_id,
-        ))
-        
-class RelatedItemsUpdateHandler(Handler):
-    def _get_item_ids(self, items):
-        for item in items:
-            item_id = DATABASE.items_name_to_id(item)
-            if item_id:
-                yield item_id
-            item_id = DATABASE.items_name_to_id(item + ' HQ')
-            if item_id:
-                yield item_id
-                
-    @tornado.web.authenticated
-    def post(self):
-        item_id = int(self.get_argument("item_id"))
-        item_name = DATABASE.items_id_to_name(item_id)
-        if item_name is None:
-            raise tornado.web.HTTPError(422, reason='"{item_id}" is not a known item; submit a price to create it'.format(
-                item_id=item_id,
-            ))
-        
-        context = self._build_common_context()
-        restrict_moderator(context)
-        
-        (crafted_from, crafts_into) = gamerescape.parse_related(_get_nq_name(item_name))
-        DATABASE.related_set(item_id,
-            self._get_item_ids(crafted_from),
-            self._get_item_ids(crafts_into),
-        )
         self.redirect("/items/{item_id}".format(
             item_id=item_id,
         ))
@@ -408,7 +306,7 @@ class AjaxPriceDeleteHandler(Handler):
         if context['role']['moderator']:
             DATABASE.items_delete_price(item_id, timestamp)
         else:
-            if context['page']['time_current'] - timestamp > CONFIG['prices']['delete_lockout_seconds']:
+            if context['rendering']['time_current'] - timestamp > CONFIG['data']['prices']['delete_window']:
                 DATABASE.flags_create(item_id, timestamp, context['identity']['user_id'])
                 deleted = False
             else:
@@ -423,7 +321,7 @@ class AjaxWatchHandler(Handler):
         context = self._build_common_context()
         user_id = context['identity']['user_id']
         
-        if DATABASE.watchlist_count(user_id) >= CONFIG['profiles']['item_watch_limit']:
+        if DATABASE.watchlist_count(user_id) >= CONFIG['lists']['item_watch']['limit']:
             raise tornado.web.HTTPError(409, reason='You cannot watch any more items')
             
         DATABASE.watchlist_add(user_id, item_id)
@@ -438,4 +336,22 @@ class AjaxUnwatchHandler(Handler):
         
         DATABASE.watchlist_remove(context['identity']['user_id'], item_id)
         self.write({})
+        
+class AjaxQueryNames(Handler):
+    @tornado.web.authenticated
+    def get(self):
+        search_term = self.get_argument("term")
+        limit = CONFIG['lists']['search']['limit']
+        
+        context = self._build_common_context()
+        
+        options = []
+        for (name, id, hq) in DATABASE.items_search(language=context['identity']['language'], filter=search_term, limit=limit):
+            if hq:
+                name = '{name} HQ'.format(name=name)
+            options.append({
+                'label': name,
+                'value': id,
+            })
+        self.write(json.dumps(options))
         

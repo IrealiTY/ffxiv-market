@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import re
 import time
@@ -12,6 +13,8 @@ from _common import (
     USER_STATUS_GUEST,
     USER_STATUS_PENDING, USER_STATUS_ACTIVE, USER_STATUS_BANNED,
     USER_STATUS_MODERATOR, USER_STATUS_ADMINISTRATOR,
+    USER_LANGUAGE_ENGLISH, USER_LANGUAGE_JAPANESE, USER_LANGUAGE_FRENCH, USER_LANGUAGE_GERMAN,
+    USER_LANGUAGE_NAMES,
 )
 
 _CHARACTER_NAME_MAX_LENGTH = 21
@@ -56,8 +59,8 @@ class LoginHandler(Handler):
                 raise tornado.web.HTTPError(403, reason="Account is banned")
                 
             self.set_secure_cookie(
-                CONFIG['cookie']['auth_identifier'], str(user_id),
-                expires_days=CONFIG['cookie']['longevity_days'],
+                CONFIG['cookies']['authentication']['identifier'], str(user_id),
+                expires_days=CONFIG['cookies']['authentication']['longevity_days'],
             )
             self.redirect(self.get_argument("next", default="/"))
             return
@@ -66,7 +69,7 @@ class LoginHandler(Handler):
         
 class LogoutHandler(Handler):
     def get(self):
-        self.clear_cookie(CONFIG['cookie']['auth_identifier'])
+        self.clear_cookie(CONFIG['cookies']['authentication']['identifier'])
         self.redirect('/login')
         
 class RegisterHandler(Handler):
