@@ -2,57 +2,118 @@
 
 <%namespace file="formatting.mako" import="render_item_list"/>
 
-<div style="float: left; padding-right: 15px;">
-    <div>
-        <span style="font-size: 1.5em;">Watched items</span><br/>
-        ${render_item_list(DATABASE.watchlist_list(
-            user_id=identity['user_id'],
-        ), 'wat')}
-    </div>
-    <div>
-        <span style="font-size: 1.5em;">Crystals</span><br/>
-        ${render_item_list((DATABASE.items_get_latest_by_id(id) for id in crystal_list), 'cry')}
-    </div>
-    <div>
-        <span style="font-size: 1.5em;">Most-watched items</span><br/>
-        ${render_item_list(DATABASE.watchlist_get_most_watched(
-            limit=CONFIG['lists']['item_watch']['limit'],
-        ), 'mwt')}
-    </div>
-</div>
-<div style="float: left;">
-    <div style="float: left; padding-right: 15px;">
-        <span style="font-size: 1.5em;">Items with no stock</span><br/>
-        ${render_item_list(DATABASE.items_get_no_supply(
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-3 watched-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Watched items</h4>
+                    <h6 class="card-subtitle text-muted">(${watch_count}/${watch_limit})</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.watchlist_list(user_id=identity['user_id'], ), 'wat')}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 crystal-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Crystals</h4>
+                    <h6 class="card-subtitle text-muted">Shiny Shiny!</h6>
+                </div>
+            <img class="card-img-top" src="/static/marketboard_crystals.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list((DATABASE.items_get_latest_by_id(id) for id in crystal_list), 'cry')}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 most-watched-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Most-watched items</h4>
+                    <h6 class="card-subtitle text-muted">Your must have list!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.watchlist_get_most_watched(
+            								limit=CONFIG['lists']['item_watch']['limit'],
+        								 ), 'mwt')}</p>
+                </div>
+            </div>
+        </div>
+	</div>
+    <div class="row">
+
+        <div class="col-lg-3 nostock-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Items with no stock</h4>
+                    <h6 class="card-subtitle text-muted">Out of order!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.items_get_no_supply(
             limit=CONFIG['lists']['no_supply']['limit'],
             max_age=(rendering['time_current'] - CONFIG['lists']['no_supply']['max_age']),
-        ), 'nst')}
-    </div>
-    <div style="float: left;">
-        <span style="font-size: 1.5em;">Stale data</span><br/>
-        ${render_item_list(DATABASE.items_get_stale(
+        ), 'nst')}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 stale-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Stale data</h4>
+                    <h6 class="card-subtitle text-muted">(Past 1 - 7days)</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.items_get_stale(
             limit=CONFIG['lists']['stale']['limit'],
             min_age=(rendering['time_current'] - CONFIG['lists']['stale']['min_age']),
             max_age=(rendering['time_current'] - CONFIG['lists']['stale']['max_age']),
-        ), 'sta')}
-    </div>
-    <div style="clear: both;"></div>
-    <div style="float: left; padding-right: 15px;">
-        <span style="font-size: 1.5em;">Most valuable (${CONFIG['lists']['most_valuable']['min_value']}-${CONFIG['lists']['most_valuable']['max_value']})</span><br/>
-        ${render_item_list(DATABASE.items_get_most_valuable(
+        ), 'sta')}}</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 valuable-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Most valuable</h4>
+                    <h6 class="card-subtitle text-muted">(${CONFIG['lists']['most_valuable']['min_value']}-${CONFIG['lists']['most_valuable']['max_value']})</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.items_get_most_valuable(
             limit=CONFIG['lists']['most_valuable']['limit'],
             max_age=(rendering['time_current'] - CONFIG['lists']['most_valuable']['max_age']),
             min_value=CONFIG['lists']['most_valuable']['min_value'],
             max_value=CONFIG['lists']['most_valuable']['max_value'],
-        ), 'val')}
-    </div>
-    <div style="float: left;">
-        <span style="font-size: 1.5em;">Recently updated</span><br/>
-        ${render_item_list(DATABASE.items_get_recently_updated(
+        ), 'val')}</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-3 updated-items">
+            <div class="card">
+                <div class="card-block">
+                    <h4 class="card-title">Recently updated</h4>
+                    <h6 class="card-subtitle text-muted">Fresh Data!</h6>
+                </div>
+                <img class="card-img-top" src="/static/marketboard.jpg" alt="Marketboard">
+                <div class="card-block">
+                    <p class="card-text">${render_item_list(DATABASE.items_get_recently_updated(
             limit=CONFIG['lists']['recently_updated']['limit'],
             max_age=(rendering['time_current'] - CONFIG['lists']['recently_updated']['max_age']),
-        ), 'rec')}
+        ), 'rec')}</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
 <%include file="footer.html"/>

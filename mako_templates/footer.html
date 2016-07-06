@@ -1,16 +1,12 @@
-        <div style="clear: both;"></div>
-        <hr/>
-        <div style="font-size: 0.675em; white-space: nowrap; float: right; text-align: right;">
-            <span>Game server: ${CONFIG['meta']['game_server']}</span><br/>
-            <span>All timestamps displayed in your local time</span><br/>
+            <footer>
+                <div><%include file="ad-snippet.html"/></div>
+                <span>This service is built, maintained, and hosted by a player like you, please exclude this site from your adblocker, if you run one.</span>
+                <div class="pull-right">
+                <a href="#">Game server: ${CONFIG['meta']['game_server']}</a><a href="#">All timestamps displayed in your local time</a>
+                </div>
+            </footer>
         </div>
-        %if CONFIG['meta']['show_ad']:
-            <div style="font-style: italic; font-size: 0.675em; white-space: nowrap; float: left;">
-                <%include file="ad-snippet.html"/>
-                <br/>
-                This service is built, maintained, and hosted by players like you;
-                please exclude this site from your adblocker, if you run one.
-            </div>
-        %endif
+        <script src="/static/js/tether.min.js"></script><!-- Tether for Bootstrap --> 
+        <script src="/static/js/bootstrap.min.js"></script>
     </body>
 </html>
