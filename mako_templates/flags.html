@@ -11,8 +11,8 @@
                     <a href="/items/${flag.item.id}">${getattr(flag.item.name, identity['language']) | h}</a>
                     @ ${flag.item.price.value}
                     ${render_timestamp(flag.item.price.timestamp)}<br/>
-                    Submitted by <a href="/users/${flag.item.price.reporter.id}">${flag.item.price.reporter.anonymous and '<i>' or ''}${flag.item.price.reporter.name}${flag.item.price.reporter.anonymous and '</i>' or ''}</a><br/>
-                    Flagged by <a href="/users/${flag.user.id}">${flag.user.anonymous and '<i>' or ''}${flag.user.name}${flag.user.anonymous and '</i>' or ''}</a><br/>
+                    Submitted by <a href="/users/${flag.item.price.reporter.id}">${flag.item.price.reporter.anonymous and '<i>' or ''}${flag.item.price.reporter.name | h}${flag.item.price.reporter.anonymous and '</i>' or ''}</a><br/>
+                    Flagged by <a href="/users/${flag.user.id}">${flag.user.anonymous and '<i>' or ''}${flag.user.name | h}${flag.user.anonymous and '</i>' or ''}</a><br/>
                     <form style="display: inline;">
                         <input type="submit" value="delete flagged price" onclick="return ffxivm_flag_resolve(${flag.item.id}, ${flag.item.price.timestamp}, true, 'flg-${i}');"/>
                     </form>

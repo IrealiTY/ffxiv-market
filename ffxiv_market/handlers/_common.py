@@ -30,6 +30,9 @@ class _MakoEngine(object):
         self._lookup = mako.lookup.TemplateLookup(
             directories=[CONFIG['server']['mako']['templates_path']],
             module_directory=CONFIG['server']['mako']['modules_path'],
+            default_filters=['decode.utf8'],
+            input_encoding='utf-8',
+            output_encoding='utf-8',
         )
         
     def render_page(self, template, **kwargs):

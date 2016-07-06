@@ -31,7 +31,7 @@ if age == 1:
 </%def>
 
 <%def name="_render_item(item_ref, callback_id)">
-    <a href="/items/${item_ref.item_state.id}">${getattr(item_ref.item_state.name, identity['language'])}${item_ref.item_state.hq and ' HQ' or ''}</a>
+    <a href="/items/${item_ref.item_state.id}">${getattr(item_ref.item_state.name, identity['language']) | h}${item_ref.item_state.hq and ' HQ' or ''}</a>
     %if item_ref.item_state.price:
         @ <span id="prc-${callback_id}">${item_ref.item_state.price.value and '{p:,}'.format(p=item_ref.item_state.price.value) or 'none'}</span>
         %if item_ref.item_state.price.value and item_ref.average and item_ref.item_state.price.timestamp > (rendering['time_current'] - 43200):

@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="utf-8"/>
-        <title>${CONFIG['meta']['site_name']} - ${rendering['title']}</title>
+        <title>${CONFIG['meta']['site_name']} - ${rendering['title'] | h}</title>
         <link rel="icon" href="/static/favicon.ico">
         <script src="//code.jquery.com/jquery-2.2.4.min.js"></script>
         <script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
@@ -45,7 +45,7 @@
                         $("#itemselect").autocomplete({
                             source: "/items/ajax-query-names",
                             delay: 300,
-                            minLength: 4
+                            minLength: 3
                         });
                     });
                 </script>
