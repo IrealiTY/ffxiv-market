@@ -29,9 +29,9 @@
     ${render_timestamp(price.timestamp)}
     <span style="font-size: 0.8em;">submitted by
         %if role['moderator']:
-            <a href="/users/${price.reporter.id}">${price.reporter.anonymous and '<i>' or ''}${price.reporter.name}${price.reporter.anonymous and '</i>' or ''}</a>
+            <a href="/users/${price.reporter.id}">${price.reporter.anonymous and '<i>' or ''}${price.reporter.name | h}${price.reporter.anonymous and '</i>' or ''}</a>
         %else:
-            ${price.reporter.anonymous and 'anonymous' or price.reporter.name}
+            ${price.reporter.anonymous and 'anonymous' or price.reporter.name | h}
         %endif
     </span>
 </%def>
@@ -66,7 +66,7 @@
 
 <div style="clear: both;"></div>
 <div style="float: left; padding-right: 15px;">
-    <span style="font-size: 1.75em;">${item_name}${item_hq and ' HQ' or ''}</span>
+    <span style="font-size: 1.75em;">${item_name | h}${item_hq and ' HQ' or ''}</span>
     <a href="https://xivdb.com/item/${xivdb_id | h}">view on XIVDB</a>
     <a href="http://na.finalfantasyxiv.com/lodestone/playguide/db/item/${lodestone_id | h}/">view on The Lodestone</a>
     <form action="/items/price-update" method="post" style="display: inline;">

@@ -1,5 +1,7 @@
             <footer>
-                <div><%include file="ad-snippet.html"/></div>
+                %if CONFIG['meta']['show_ad']:
+                    <div><%include file="ad-snippet.html"/></div>
+                %endif
                 <span>This service is built, maintained, and hosted by a player like you, please exclude this site from your adblocker, if you run one.</span>
                 <div class="pull-right">
                 <a href="#">Game server: ${CONFIG['meta']['game_server']}</a><a href="#">All timestamps displayed in your local time</a>
