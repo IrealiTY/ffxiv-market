@@ -36,28 +36,34 @@ def _datetime_to_epoch(timestamp):
     
 _epoch_to_datetime = datetime.datetime.utcfromtimestamp
 
-class WriteWaitLock(object):
+class WritePriorityLock(object):
     def __init__(self):
-        self._reader_lock = threading.Condition(threading.Lock())
+        self._lock = threading.Condition(threading.Lock())
         self._readers = 0
+        self._writer = False
 
     def read_start(self):
-        with self._reader_lock:
+        with self._lock:
+            while self._writer:
+                self._lock.wait()
             self._readers += 1
             
     def read_stop(self):
-        with self._reader_lock:
+        with self._lock:
             self._readers -= 1
             if not self._readers:
-                self._reader_lock.notify_all()
+                self._lock.notify_all()
                 
     def write_start(self):
-        self._reader_lock.acquire()
+        self._lock.acquire()
+        self._writer = True
         while self._readers:
-            self._read_ready.wait()
+            self._lock.wait()
             
     def write_stop(self):
-        self._reader_lock.release()
+        self._writer = False
+        self._lock.notify_all()
+        self._lock.release()
         
 class _Cache(object):
     """
@@ -68,7 +74,7 @@ class _Cache(object):
     _item_refs = None
     
     def __init__(self, item_data):
-        self._lock = WriteWaitLock()
+        self._lock = WritePriorityLock()
         
         self._item_refs = list(item_data)
         
