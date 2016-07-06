@@ -585,7 +585,7 @@ class _Database(object):
             #Update the cache
             old_item_ref = self._cache.get_item_by_id(item_id)
             self._cache.update(ItemRef(
-                ItemState(self._cache.get_item_by_id(item_id), item_id, old_item_ref.item_state.hq, price),
+                ItemState(old_item_ref.item_state.name, item_id, old_item_ref.item_state.hq, price),
                 self._items_compute_average(item_id),
             ))
             
@@ -619,7 +619,7 @@ class _Database(object):
                 if result is not None: #There's still data
                     (timestamp, value) = result
                     self._cache.update(ItemRef(
-                        ItemState(self._cache.get_item_by_id(item_id), item_id, hq, ItemPrice(
+                        ItemState(self._cache.get_item_by_id(item_id).item_state.name, item_id, hq, ItemPrice(
                             _datetime_to_epoch(timestamp),
                             value, None, False,
                         )),
@@ -662,9 +662,9 @@ class _Database(object):
                 'reporter': reporter,
             })
             
-    def flags_list(self, language):
+    def flags_list(self):
         with self._pool.get_cursor() as cursor:
-            cursor.execute("""SELECT flags.price_item_id, base_items.name_{language}, items.hq,
+            cursor.execute("""SELECT flags.price_item_id, items.hq,
                     flags.price_ts, prices.value,
                     reporter.id, reporter.name, reporter.anonymous,
                     reportee.id, reportee.name, reportee.anonymous
@@ -675,16 +675,16 @@ class _Database(object):
                   AND flags.reported_by = reporter.id
                   AND prices.submitting_user = reportee.id
                   AND base_items.id = items.base_item_id
-                ORDER BY flags.price_ts ASC""".format(language=language))
+                ORDER BY flags.price_ts ASC""")
             return map(
                 lambda (
-                    item_id, item_name, hq,
+                    item_id, hq,
                     price_ts, item_value,
                     reporter_id, reporter_name, reporter_anonymous,
                     reportee_id, reportee_name, reportee_anonymous,
                 ): Flag(
                     ItemState(
-                        item_name,
+                        self._cache.get_item_by_id(item_id).item_state.name,
                         item_id, hq,
                         ItemPrice(
                             _datetime_to_epoch(price_ts),

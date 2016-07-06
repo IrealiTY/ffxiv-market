@@ -25,7 +25,7 @@ class FlagsHandler(Handler):
             restrict=restrict_moderator,
         )
         
-        context['flags'] = DATABASE.flags_list(language=context['identity']['language'])
+        context['flags'] = DATABASE.flags_list()
         self._render('flags.html', context, html_headers=(
             '<script src="/static/ajax.js"></script>',
         ))
