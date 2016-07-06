@@ -66,7 +66,7 @@
 
 <div style="clear: both;"></div>
 <div style="float: left; padding-right: 15px;">
-    <span style="font-size: 1.75em;">${item_name}</span>
+    <span style="font-size: 1.75em;">${item_name}${item_hq and ' HQ' or ''}</span>
     <a href="https://xivdb.com/item/${xivdb_id | h}">view on XIVDB</a>
     <a href="http://na.finalfantasyxiv.com/lodestone/playguide/db/item/${lodestone_id | h}/">view on The Lodestone</a>
     <form action="/items/price-update" method="post" style="display: inline;">

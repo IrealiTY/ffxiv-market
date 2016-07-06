@@ -210,6 +210,7 @@ class ItemHandler(Handler):
         context['rendering']['title'] = item_name
         context.update({
             'item_name': item_name,
+            'item_hq': hq,
             'item_id': item_id,
             'xivdb_id': xivdb_id,
             'lodestone_id': lodestone_id,
