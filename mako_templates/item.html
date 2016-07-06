@@ -82,7 +82,11 @@
         </span>
     </form>
     <div style="font-size: 1.25em;">
-        ${render_price_point(item_id, prices.next(), 'rct', reload_on_delete=True)}<br/>
+        %if price_data:
+            ${render_price_point(item_id, prices.next(), 'rct', reload_on_delete=True)}<br/>
+        %else:
+            <span class="nodata">No data</span>
+        %endif
     </div>
     <div>
         %if watching:

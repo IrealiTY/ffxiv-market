@@ -203,10 +203,10 @@ class ItemHandler(Handler):
                         break
                 else:
                     new_normalised_data.append(last_value)
+            normalised_data = new_normalised_data
         else: #Not enough data to do time-based analysis
-            new_normalised_data = None
-        del normalised_data
-        
+            normalised_data = None
+            
         context['rendering']['title'] = item_name
         context.update({
             'item_name': item_name,
