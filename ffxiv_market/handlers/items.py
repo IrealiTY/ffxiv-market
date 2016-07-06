@@ -217,7 +217,7 @@ class ItemHandler(Handler):
             'crafted_from': sorted((i for i in crafted_from if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
             'crafts_into': sorted((i for i in crafts_into if i), key=(lambda i: getattr(i.item_state.name, context['identity']['language']))),
             'price_data': price_data,
-            'normalised_data': new_normalised_data,
+            'normalised_data': normalised_data,
             'normalised_data_timescale': normalised_data_timescale,
             'average_month': average_month,
             'average_week': average_week,
